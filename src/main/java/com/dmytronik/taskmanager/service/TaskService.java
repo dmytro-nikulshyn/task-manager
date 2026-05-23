@@ -21,11 +21,27 @@ public class TaskService {
     }
 
     public Task getTaskById(Long id) {
-        return taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
+        return findTaskOrThrow(id);
     }
 
     public Task createTask(Task task) {
         return taskRepository.save(task);
+    }
+
+    public Task updateTask(Long id, Task task) {
+        findTaskOrThrow(id);
+        task.setId(id);
+        taskRepository.save(task);
+        return taskRepository.findById(id).get();
+    }
+
+    public void deleteTask(Long id) {
+        findTaskOrThrow(id);
+        taskRepository.deleteById(id);
+    }
+
+    private Task findTaskOrThrow(Long id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
     }
 }
