@@ -1,6 +1,8 @@
 package com.dmytronik.taskmanager.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 
@@ -10,9 +12,11 @@ public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @NotBlank(message = "Title cannot be empty")
     private String title;
     private String description;
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "Status cannot be null")
     private Status status;
     @Column(updatable = false)
     private LocalDateTime createdAt;
