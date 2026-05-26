@@ -1,6 +1,7 @@
 package com.dmytronik.taskmanager.controller;
 
-import com.dmytronik.taskmanager.model.Task;
+import com.dmytronik.taskmanager.dto.TaskRequestDTO;
+import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -20,24 +21,24 @@ public class TaskController {
     }
 
     @GetMapping
-    public List<Task> getAllTasks() {
+    public List<TaskResponseDTO> getAllTasks() {
         return taskService.getAllTasks();
     }
 
     @PostMapping
-    public ResponseEntity<Task> createTask(@Valid @RequestBody Task task) {
-        Task created = taskService.createTask(task);
+    public ResponseEntity<TaskResponseDTO> createTask(@Valid @RequestBody TaskRequestDTO taskRequestDTO) {
+        TaskResponseDTO created = taskService.createTask(taskRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping("/{id}")
-    public Task getTaskById(@PathVariable Long id) {
+    public TaskResponseDTO getTaskById(@PathVariable Long id) {
         return taskService.getTaskById(id);
     }
 
     @PutMapping("/{id}")
-    public Task updateTask(@PathVariable Long id,  @RequestBody Task task) {
-        return taskService.updateTask(id, task);
+    public TaskResponseDTO updateTask(@PathVariable Long id, @Valid @RequestBody TaskRequestDTO taskRequestDTO) {
+        return taskService.updateTask(id, taskRequestDTO);
     }
 
     @DeleteMapping("/{id}")
