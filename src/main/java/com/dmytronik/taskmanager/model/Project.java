@@ -7,13 +7,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
+@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@Entity
-public class Task {
+public class Project {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,14 +23,19 @@ public class Task {
     private String title;
     private String description;
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private ProjectStatus status;
+    @OneToMany(mappedBy = "project")
+    private List<Task> tasks;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User owner;
     @Column(updatable = false)
     private LocalDateTime createdAt;
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Project project;
 
     @PrePersist
     public void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        createdAt = LocalDateTime.now();
     }
+
+
+
 }
