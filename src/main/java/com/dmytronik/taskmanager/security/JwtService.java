@@ -19,9 +19,10 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long expiration;
 
-    public String generateToken(String email) {
+    public String generateToken(String email, Long userId) {
         return Jwts.builder()
                 .subject(email)
+                .claim("userId", userId)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
@@ -30,6 +31,10 @@ public class JwtService {
 
     public String extractEmail(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    public Long extractUserId(String token) {
+        return extractClaims(token).get("userId", Long.class);
     }
 
     public boolean isTokenValid(String token, String email) {

@@ -5,18 +5,16 @@ import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.exception.TaskNotFoundException;
 import com.dmytronik.taskmanager.model.Task;
 import com.dmytronik.taskmanager.repository.TaskRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class TaskService {
 
     private final TaskRepository taskRepository;
-
-    public TaskService(TaskRepository taskRepository) {
-        this.taskRepository = taskRepository;
-    }
 
     public List<TaskResponseDTO> getAllTasks() {
         return taskRepository.findAll()
@@ -38,8 +36,8 @@ public class TaskService {
         findTaskOrThrow(id);
         Task task = convertToEntity(taskRequestDTO);
         task.setId(id);
-        taskRepository.save(task);
-        return convertToDTO(taskRepository.findById(id).get());
+        Task savedTask = taskRepository.save(task);
+        return convertToDTO(savedTask);
     }
 
     public void deleteTask(Long id) {
