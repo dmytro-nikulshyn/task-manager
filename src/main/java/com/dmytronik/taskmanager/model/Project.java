@@ -26,7 +26,7 @@ public class Project {
     private ProjectStatus status;
     @OneToMany(mappedBy = "project")
     private List<Task> tasks;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private User owner;
     @Column(updatable = false)
     private LocalDateTime createdAt;

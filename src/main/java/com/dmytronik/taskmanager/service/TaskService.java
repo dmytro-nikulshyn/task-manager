@@ -33,11 +33,11 @@ public class TaskService {
     }
 
     public TaskResponseDTO updateTask(Long id, TaskRequestDTO taskRequestDTO) {
-        findTaskOrThrow(id);
-        Task task = convertToEntity(taskRequestDTO);
-        task.setId(id);
-        Task savedTask = taskRepository.save(task);
-        return convertToDTO(savedTask);
+        Task task = findTaskOrThrow(id);
+        task.setTitle(taskRequestDTO.getTitle());
+        task.setDescription(taskRequestDTO.getDescription());
+        task.setStatus(taskRequestDTO.getStatus());
+        return convertToDTO(taskRepository.save(task));
     }
 
     public void deleteTask(Long id) {
