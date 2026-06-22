@@ -28,6 +28,7 @@ public class ProjectController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
     public ResponseEntity<ProjectResponseDTO> createProject(
             @Valid @RequestBody ProjectRequestDTO projectRequestDTO,
             @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
