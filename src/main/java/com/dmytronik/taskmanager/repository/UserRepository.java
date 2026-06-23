@@ -1,5 +1,6 @@
 package com.dmytronik.taskmanager.repository;
 
+import com.dmytronik.taskmanager.model.Role;
 import com.dmytronik.taskmanager.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,5 +13,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     boolean existsByUsername(String username);
+
+    boolean existsByRole(Role role);
 }
 
