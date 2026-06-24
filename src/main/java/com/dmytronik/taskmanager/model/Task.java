@@ -27,6 +27,10 @@ public class Task {
     private LocalDateTime createdAt;
     @ManyToOne(fetch = FetchType.LAZY)
     private Project project;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private User reporter;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User assignee;
 
     @PrePersist
     public void onCreate() {
