@@ -15,4 +15,6 @@ public class TaskResponseDTO {
      private final String description;
      private final Status status;
      private final LocalDateTime createdAt;
+     private final UserSummaryDTO reporter;
+     private final UserSummaryDTO assignee;
 }

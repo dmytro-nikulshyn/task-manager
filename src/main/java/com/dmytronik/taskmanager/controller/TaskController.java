@@ -2,11 +2,13 @@ package com.dmytronik.taskmanager.controller;
 
 import com.dmytronik.taskmanager.dto.TaskRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
+import com.dmytronik.taskmanager.security.CustomUserPrincipal;
 import com.dmytronik.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,8 +26,10 @@ public class TaskController {
     }
 
     @PostMapping
-    public ResponseEntity<TaskResponseDTO> createTask(@Valid @RequestBody TaskRequestDTO taskRequestDTO) {
-        TaskResponseDTO created = taskService.createTask(taskRequestDTO);
+    public ResponseEntity<TaskResponseDTO> createTask(
+            @Valid @RequestBody TaskRequestDTO taskRequestDTO,
+            @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
+        TaskResponseDTO created = taskService.createTask(taskRequestDTO, customUserPrincipal.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

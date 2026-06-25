@@ -13,4 +13,6 @@ public class TaskRequestDTO {
     private String description;
     @NotNull(message = "Status cannot be null")
     private Status status;
+    @NotNull(message = "Project cannot be empty")
+    private Long projectId;
 }

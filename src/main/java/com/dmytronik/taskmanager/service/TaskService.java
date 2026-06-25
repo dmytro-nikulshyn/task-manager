@@ -2,9 +2,16 @@ package com.dmytronik.taskmanager.service;
 
 import com.dmytronik.taskmanager.dto.TaskRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
+import com.dmytronik.taskmanager.dto.UserSummaryDTO;
+import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.TaskNotFoundException;
+import com.dmytronik.taskmanager.exception.UserNotFoundException;
+import com.dmytronik.taskmanager.model.Project;
 import com.dmytronik.taskmanager.model.Task;
+import com.dmytronik.taskmanager.model.User;
+import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.TaskRepository;
+import com.dmytronik.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +22,8 @@ import java.util.List;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
     public List<TaskResponseDTO> getAllTasks() {
         return taskRepository.findAll()
@@ -27,8 +36,18 @@ public class TaskService {
         return convertToDTO(findTaskOrThrow(id));
     }
 
-    public TaskResponseDTO createTask(TaskRequestDTO taskRequestDTO) {
+    public TaskResponseDTO createTask(TaskRequestDTO taskRequestDTO, Long currentUserId) {
         Task task = convertToEntity(taskRequestDTO);
+
+        Long projectId = taskRequestDTO.getProjectId();
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundOrAccessException(projectId));
+        task.setProject(project);
+
+        User reporter = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new UserNotFoundException(currentUserId));
+        task.setReporter(reporter);
+
         return convertToDTO(taskRepository.save(task));
     }
 
@@ -53,7 +72,12 @@ public class TaskService {
     // Entity -> ResponseDTO:
     private TaskResponseDTO convertToDTO(Task task) {
         return new TaskResponseDTO(
-                task.getId(), task.getTitle(), task.getDescription(), task.getStatus(), task.getCreatedAt());
+                task.getId(), task.getTitle(), task.getDescription(), task.getStatus(), task.getCreatedAt(),
+                new UserSummaryDTO(task.getReporter().getId(), task.getReporter().getUsername()),
+                task.getAssignee() != null
+                        ? new UserSummaryDTO(task.getAssignee().getId(), task.getAssignee().getUsername())
+                        : null
+        );
     }
 
     // RequestDTO -> Entity:
