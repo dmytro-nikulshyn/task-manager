@@ -1,5 +1,6 @@
 package com.dmytronik.taskmanager.controller;
 
+import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.security.CustomUserPrincipal;
@@ -47,5 +48,10 @@ public class TaskController {
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/assignee")
+    public TaskResponseDTO assignTask(@PathVariable Long id, @RequestBody TaskAssigneeRequestDTO taskAssigneeRequestDTO) {
+        return taskService.assignTask(id, taskAssigneeRequestDTO);
     }
 }

@@ -60,4 +60,13 @@ public class GlobalExceptionHandler {
                 "message", ex.getMessage()
         );
     }
+
+    @ExceptionHandler(AssigneeNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleAssigneeNotFound(AssigneeNotFoundException ex) {
+        return Map.of(
+                "error", "Not Found",
+                "message", ex.getMessage()
+        );
+    }
 }

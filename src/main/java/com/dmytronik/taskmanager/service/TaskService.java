@@ -1,8 +1,10 @@
 package com.dmytronik.taskmanager.service;
 
+import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
+import com.dmytronik.taskmanager.exception.AssigneeNotFoundException;
 import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.TaskNotFoundException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
@@ -14,6 +16,7 @@ import com.dmytronik.taskmanager.repository.TaskRepository;
 import com.dmytronik.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,6 +28,7 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
 
+    @Transactional(readOnly = true)
     public List<TaskResponseDTO> getAllTasks() {
         return taskRepository.findAll()
                 .stream()
@@ -32,10 +36,12 @@ public class TaskService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public TaskResponseDTO getTaskById(Long id) {
         return convertToDTO(findTaskOrThrow(id));
     }
 
+    @Transactional
     public TaskResponseDTO createTask(TaskRequestDTO taskRequestDTO, Long currentUserId) {
         Task task = convertToEntity(taskRequestDTO);
 
@@ -51,6 +57,7 @@ public class TaskService {
         return convertToDTO(taskRepository.save(task));
     }
 
+    @Transactional
     public TaskResponseDTO updateTask(Long id, TaskRequestDTO taskRequestDTO) {
         Task task = findTaskOrThrow(id);
         task.setTitle(taskRequestDTO.getTitle());
@@ -62,6 +69,17 @@ public class TaskService {
     public void deleteTask(Long id) {
         findTaskOrThrow(id);
         taskRepository.deleteById(id);
+    }
+
+    @Transactional
+    public TaskResponseDTO assignTask(Long id, TaskAssigneeRequestDTO taskAssigneeRequestDTO) {
+        Task task = findTaskOrThrow(id);
+        Long assigneeId = taskAssigneeRequestDTO.getAssigneeId();
+        User assignee = (assigneeId != null)
+                ? userRepository.findById(assigneeId).orElseThrow(() -> new AssigneeNotFoundException(assigneeId))
+                : null;
+        task.setAssignee(assignee);
+        return convertToDTO(taskRepository.save(task));
     }
 
     private Task findTaskOrThrow(Long id) {
