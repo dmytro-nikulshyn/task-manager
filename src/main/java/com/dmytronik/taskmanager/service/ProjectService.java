@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -82,16 +84,20 @@ public class ProjectService {
     public ProjectResponseDTO addMember(Long projectId, Long userId, Long currentUserId) {
         Project project = getProjectWithAccessCheck(projectId, currentUserId);
         User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new MemberNotFoundException(userId));
+                .orElseThrow(() -> new MemberNotFoundException(userId));
         project.getMembers().add(user);
         return convertToDTO(projectRepository.save(project));
     }
 
     private ProjectResponseDTO convertToDTO(Project project) {
+        Set<UserSummaryDTO> memberDTOs = project.getMembers().stream()
+                .map(member -> new UserSummaryDTO(member.getId(), member.getUsername()))
+                .collect(Collectors.toSet());
         return new ProjectResponseDTO(
                 project.getId(), project.getTitle(), project.getDescription(),
                 project.getStatus(), project.getCreatedAt(),
-                new UserSummaryDTO(project.getOwner().getId(), project.getOwner().getUsername()));
+                new UserSummaryDTO(project.getOwner().getId(), project.getOwner().getUsername()),
+                memberDTOs);
     }
 
     private Project convertToEntity(ProjectRequestDTO projectRequestDTO) {
