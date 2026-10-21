@@ -1,5 +1,6 @@
 package com.dmytronik.taskmanager.controller;
 
+import com.dmytronik.taskmanager.dto.ProjectMemberRequestDTO;
 import com.dmytronik.taskmanager.dto.ProjectRequestDTO;
 import com.dmytronik.taskmanager.dto.ProjectResponseDTO;
 import com.dmytronik.taskmanager.security.CustomUserPrincipal;
@@ -60,6 +61,14 @@ public class ProjectController {
             @PathVariable Long id, @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
         projectService.deleteProject(id, customUserPrincipal.getId());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/members")
+    public ProjectResponseDTO addMember(
+            @PathVariable Long id,
+            @Valid @RequestBody ProjectMemberRequestDTO projectMemberRequestDTO,
+            @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
+        return projectService.addMember(id, projectMemberRequestDTO.getUserId(), customUserPrincipal.getId());
     }
 
 }

@@ -4,6 +4,7 @@ import com.dmytronik.taskmanager.dto.ProjectRequestDTO;
 import com.dmytronik.taskmanager.dto.ProjectResponseDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
 import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
+import com.dmytronik.taskmanager.exception.MemberNotFoundException;
 import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
@@ -13,6 +14,7 @@ import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -23,14 +25,17 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
 
+    @Transactional
     public ProjectResponseDTO createProject(ProjectRequestDTO projectRequestDTO, Long ownerId) {
         Project project = convertToEntity(projectRequestDTO);
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new UserNotFoundException(ownerId));
         project.setOwner(owner);
+        project.getMembers().add(owner);
         return convertToDTO(projectRepository.save(project));
     }
 
+    @Transactional(readOnly = true)
     public List<ProjectResponseDTO> getProjectsByOwnerId(Long ownerId, Long currentUserId) {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new UserNotFoundException(currentUserId));
@@ -43,6 +48,7 @@ public class ProjectService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<ProjectResponseDTO> getAllProjects() {
         return projectRepository.findAll()
                 .stream()
@@ -50,11 +56,13 @@ public class ProjectService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public ProjectResponseDTO getProjectById(Long id, Long currentUserId) {
         Project project = getProjectWithAccessCheck(id, currentUserId);
         return convertToDTO(project);
     }
 
+    @Transactional
     public ProjectResponseDTO updateProject(Long id, ProjectRequestDTO projectRequestDTO, Long currentUserId) {
         Project project = getProjectWithAccessCheck(id, currentUserId);
 
@@ -64,9 +72,19 @@ public class ProjectService {
         return convertToDTO(projectRepository.save(project));
     }
 
+    @Transactional
     public void deleteProject(Long id, Long currentUserId) {
         getProjectWithAccessCheck(id, currentUserId);
         projectRepository.deleteById(id);
+    }
+
+    @Transactional
+    public ProjectResponseDTO addMember(Long projectId, Long userId, Long currentUserId) {
+        Project project = getProjectWithAccessCheck(projectId, currentUserId);
+        User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new MemberNotFoundException(userId));
+        project.getMembers().add(user);
+        return convertToDTO(projectRepository.save(project));
     }
 
     private ProjectResponseDTO convertToDTO(Project project) {

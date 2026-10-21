@@ -69,4 +69,13 @@ public class GlobalExceptionHandler {
                 "message", ex.getMessage()
         );
     }
+
+    @ExceptionHandler(MemberNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleMemberNotFound(MemberNotFoundException ex) {
+        return Map.of(
+                "error", "Not Found",
+                "message", ex.getMessage()
+        );
+    }
 }
