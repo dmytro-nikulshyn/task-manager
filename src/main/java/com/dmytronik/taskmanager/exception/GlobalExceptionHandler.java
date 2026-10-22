@@ -78,4 +78,13 @@ public class GlobalExceptionHandler {
                 "message", ex.getMessage()
         );
     }
+
+    @ExceptionHandler(MemberHasTasksException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleMemberHasTasksException(MemberHasTasksException ex) {
+        return Map.of(
+                "error", "Conflict",
+                "message", ex.getMessage()
+        );
+    }
 }

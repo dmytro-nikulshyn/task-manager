@@ -19,4 +19,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Override
     @NonNull
     Optional<Task> findById(@NonNull Long id);
+
+    boolean existsByProjectIdAndAssigneeId(Long projectId, Long assigneeId);
 }

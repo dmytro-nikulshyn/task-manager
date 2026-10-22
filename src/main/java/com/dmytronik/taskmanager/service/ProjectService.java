@@ -4,6 +4,7 @@ import com.dmytronik.taskmanager.dto.ProjectRequestDTO;
 import com.dmytronik.taskmanager.dto.ProjectResponseDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
 import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
+import com.dmytronik.taskmanager.exception.MemberHasTasksException;
 import com.dmytronik.taskmanager.exception.MemberNotFoundException;
 import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
@@ -11,6 +12,7 @@ import com.dmytronik.taskmanager.model.Project;
 import com.dmytronik.taskmanager.model.Role;
 import com.dmytronik.taskmanager.model.User;
 import com.dmytronik.taskmanager.repository.ProjectRepository;
+import com.dmytronik.taskmanager.repository.TaskRepository;
 import com.dmytronik.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
 
     @Transactional
     public ProjectResponseDTO createProject(ProjectRequestDTO projectRequestDTO, Long ownerId) {
@@ -86,6 +89,21 @@ public class ProjectService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new MemberNotFoundException(userId));
         project.getMembers().add(user);
+        return convertToDTO(projectRepository.save(project));
+    }
+
+    @Transactional
+    public ProjectResponseDTO removeMember(Long projectId, Long userId, Long currentUserId) {
+        Project project = getProjectWithAccessCheck(projectId, currentUserId);
+        if (userId.equals(project.getOwner().getId())) {
+            throw new ForbiddenOperationException("Project owner cannot be removed from members");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new MemberNotFoundException(userId));
+        if (taskRepository.existsByProjectIdAndAssigneeId(projectId, userId)) {
+            throw new MemberHasTasksException(userId, projectId);
+        }
+        project.getMembers().remove(user);
         return convertToDTO(projectRepository.save(project));
     }
 

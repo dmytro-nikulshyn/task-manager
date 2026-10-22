@@ -71,4 +71,11 @@ public class ProjectController {
         return projectService.addMember(id, projectMemberRequestDTO.getUserId(), customUserPrincipal.getId());
     }
 
+    @DeleteMapping("/{id}/members/{userId}")
+    public ProjectResponseDTO removeMember(
+            @PathVariable Long id, @PathVariable Long userId,
+            @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
+        return projectService.removeMember(id, userId, customUserPrincipal.getId());
+    }
+
 }
