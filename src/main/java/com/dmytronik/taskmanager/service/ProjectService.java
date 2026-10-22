@@ -63,13 +63,13 @@ public class ProjectService {
 
     @Transactional(readOnly = true)
     public ProjectResponseDTO getProjectById(Long id, Long currentUserId) {
-        Project project = getProjectWithAccessCheck(id, currentUserId);
+        Project project = getProjectWithViewAccessCheck(id, currentUserId);
         return convertToDTO(project);
     }
 
     @Transactional
     public ProjectResponseDTO updateProject(Long id, ProjectRequestDTO projectRequestDTO, Long currentUserId) {
-        Project project = getProjectWithAccessCheck(id, currentUserId);
+        Project project = getProjectWithEditAccessCheck(id, currentUserId);
 
         project.setTitle(projectRequestDTO.getTitle());
         project.setDescription(projectRequestDTO.getDescription());
@@ -79,13 +79,13 @@ public class ProjectService {
 
     @Transactional
     public void deleteProject(Long id, Long currentUserId) {
-        getProjectWithAccessCheck(id, currentUserId);
+        getProjectWithEditAccessCheck(id, currentUserId);
         projectRepository.deleteById(id);
     }
 
     @Transactional
     public ProjectResponseDTO addMember(Long projectId, Long userId, Long currentUserId) {
-        Project project = getProjectWithAccessCheck(projectId, currentUserId);
+        Project project = getProjectWithEditAccessCheck(projectId, currentUserId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new MemberNotFoundException(userId));
         project.getMembers().add(user);
@@ -94,7 +94,7 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponseDTO removeMember(Long projectId, Long userId, Long currentUserId) {
-        Project project = getProjectWithAccessCheck(projectId, currentUserId);
+        Project project = getProjectWithEditAccessCheck(projectId, currentUserId);
         if (userId.equals(project.getOwner().getId())) {
             throw new ForbiddenOperationException("Project owner cannot be removed from members");
         }
@@ -126,12 +126,25 @@ public class ProjectService {
         return project;
     }
 
-    private Project getProjectWithAccessCheck(Long id, Long currentUserId) {
+    private Project getProjectWithEditAccessCheck(Long id, Long currentUserId) {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new UserNotFoundException(currentUserId));
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ProjectNotFoundOrAccessException(id));
         if (currentUser.getRole() != Role.ADMIN && !currentUserId.equals(project.getOwner().getId())) {
+            throw new ProjectNotFoundOrAccessException(id);
+        }
+        return project;
+    }
+
+    private Project getProjectWithViewAccessCheck(Long id, Long currentUserId) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new UserNotFoundException(currentUserId));
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new ProjectNotFoundOrAccessException(id));
+        if (currentUser.getRole() != Role.ADMIN
+                && !currentUserId.equals(project.getOwner().getId())
+                && !project.getMembers().contains(currentUser)) {
             throw new ProjectNotFoundOrAccessException(id);
         }
         return project;
