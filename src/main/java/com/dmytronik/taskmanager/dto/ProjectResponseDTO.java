@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
-import java.util.Set;
+import java.util.List;
 
 @Getter
 @AllArgsConstructor
@@ -17,5 +17,5 @@ public class ProjectResponseDTO {
     private final ProjectStatus status;
     private final LocalDateTime createdAt;
     private final UserSummaryDTO owner;
-    private final Set<UserSummaryDTO> members;
+    private final List<UserSummaryDTO> members;
 }

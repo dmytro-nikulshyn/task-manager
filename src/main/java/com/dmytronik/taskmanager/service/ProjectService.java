@@ -18,9 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -108,9 +107,10 @@ public class ProjectService {
     }
 
     private ProjectResponseDTO convertToDTO(Project project) {
-        Set<UserSummaryDTO> memberDTOs = project.getMembers().stream()
+        List<UserSummaryDTO> memberDTOs = project.getMembers().stream()
+                .sorted(Comparator.comparing(User::getUsername))
                 .map(member -> new UserSummaryDTO(member.getId(), member.getUsername()))
-                .collect(Collectors.toSet());
+                .toList();
         return new ProjectResponseDTO(
                 project.getId(), project.getTitle(), project.getDescription(),
                 project.getStatus(), project.getCreatedAt(),
