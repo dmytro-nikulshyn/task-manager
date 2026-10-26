@@ -9,6 +9,7 @@ import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.TaskNotFoundException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
+import com.dmytronik.taskmanager.model.Role;
 import com.dmytronik.taskmanager.model.Task;
 import com.dmytronik.taskmanager.model.User;
 import com.dmytronik.taskmanager.repository.ProjectRepository;
@@ -43,17 +44,17 @@ public class TaskService {
 
     @Transactional
     public TaskResponseDTO createTask(TaskRequestDTO taskRequestDTO, Long currentUserId) {
-        Task task = convertToEntity(taskRequestDTO);
-
         Long projectId = taskRequestDTO.getProjectId();
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundOrAccessException(projectId));
-        task.setProject(project);
-
-        User reporter = userRepository.findById(currentUserId)
+        User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new UserNotFoundException(currentUserId));
-        task.setReporter(reporter);
-
+        if (!project.getMembers().contains(currentUser) && currentUser.getRole() != Role.ADMIN) {
+            throw new ProjectNotFoundOrAccessException(projectId);
+        }
+        Task task = convertToEntity(taskRequestDTO);
+        task.setProject(project);
+        task.setReporter(currentUser);
         return convertToDTO(taskRepository.save(task));
     }
 

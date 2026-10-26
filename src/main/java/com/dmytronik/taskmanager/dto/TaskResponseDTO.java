@@ -1,6 +1,6 @@
 package com.dmytronik.taskmanager.dto;
 
-import com.dmytronik.taskmanager.model.Status;
+import com.dmytronik.taskmanager.model.TaskStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -13,7 +13,7 @@ public class TaskResponseDTO {
      private final Long id;
      private final String title;
      private final String description;
-     private final Status status;
+     private final TaskStatus status;
      private final LocalDateTime createdAt;
      private final UserSummaryDTO reporter;
      private final UserSummaryDTO assignee;

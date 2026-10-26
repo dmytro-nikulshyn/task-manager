@@ -22,7 +22,7 @@ public class Task {
     private String title;
     private String description;
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private TaskStatus status;
     @Column(updatable = false)
     private LocalDateTime createdAt;
     @ManyToOne(fetch = FetchType.LAZY)
