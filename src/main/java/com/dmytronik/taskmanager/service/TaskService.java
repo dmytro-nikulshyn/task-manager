@@ -6,7 +6,7 @@ import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
 import com.dmytronik.taskmanager.exception.AssigneeNotFoundException;
 import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
-import com.dmytronik.taskmanager.exception.TaskNotFoundException;
+import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
 import com.dmytronik.taskmanager.model.Role;
@@ -38,8 +38,17 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public TaskResponseDTO getTaskById(Long id) {
-        return convertToDTO(findTaskOrThrow(id));
+    public TaskResponseDTO getTaskById(Long id, Long currentUserId) {
+        Task task = findTaskOrThrow(id);
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new UserNotFoundException(currentUserId));
+        Project project = task.getProject();
+        if (!project.getMembers().contains(currentUser)
+                && !project.getOwner().getId().equals(currentUser.getId())
+                && currentUser.getRole() != Role.ADMIN) {
+            throw new TaskNotFoundOrAccessException(id);
+        }
+        return convertToDTO(task);
     }
 
     @Transactional
@@ -85,7 +94,7 @@ public class TaskService {
 
     private Task findTaskOrThrow(Long id) {
         return taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
+                .orElseThrow(() -> new TaskNotFoundOrAccessException(id));
     }
 
     // Entity -> ResponseDTO:

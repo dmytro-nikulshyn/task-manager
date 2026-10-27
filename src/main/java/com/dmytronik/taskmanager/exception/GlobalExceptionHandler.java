@@ -12,9 +12,9 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(TaskNotFoundException.class)
+    @ExceptionHandler(TaskNotFoundOrAccessException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> handleTaskNotFound(TaskNotFoundException ex) {
+    public Map<String, String> handleTaskNotFound(TaskNotFoundOrAccessException ex) {
         return Map.of(
                 "error", "Not Found",
                 "message", ex.getMessage()

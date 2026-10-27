@@ -2,10 +2,10 @@ package com.dmytronik.taskmanager.service;
 
 import com.dmytronik.taskmanager.dto.TaskRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
-import com.dmytronik.taskmanager.exception.TaskNotFoundException;
+import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
 import com.dmytronik.taskmanager.model.Project;
-import com.dmytronik.taskmanager.model.TaskStatus;
 import com.dmytronik.taskmanager.model.Task;
+import com.dmytronik.taskmanager.model.TaskStatus;
 import com.dmytronik.taskmanager.model.User;
 import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.TaskRepository;
@@ -78,33 +78,44 @@ public class TaskServiceTest {
     void getTaskById_shouldReturnDTO_whenTaskExists() {
         // Arrange: створення Task з id=1L
         //          налаштування mock для findById(1L)
-        User reporter = new User();
-        reporter.setId(1L);
-        reporter.setUsername("dmytronik");
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+
+        User currentUser = new User();
+        currentUser.setId(currentUserId);
+        currentUser.setUsername("dmytronik");
+
+        Project project = new Project();
+        project.getMembers().add(currentUser);
 
         Task task = new Task();
-        task.setId(1L);
+        task.setId(taskId);
         task.setTitle("Task 1");
         task.setDescription("Task 1");
         task.setStatus(TaskStatus.TODO);
-        task.setReporter(reporter);
+        task.setReporter(currentUser);
+        task.setProject(project);
 
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(currentUser));
 
-        // Act: виклик getTaskById(1L)
-        TaskResponseDTO taskResponseDTO = taskService.getTaskById(1L);
+        // Act: виклик getTaskById(taskId, currentUserId)
+        TaskResponseDTO taskResponseDTO = taskService.getTaskById(taskId, currentUserId);
 
         // Assert: перевірка що повернутий DTO має правильний id і title
-        assertThat(taskResponseDTO.getId()).isEqualTo(1L);
+        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
         assertThat(taskResponseDTO.getTitle()).isEqualTo("Task 1");
     }
 
     @Test
     void getTaskById_shouldThrowException_whenTaskDoesNotExist() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
 
-        when(taskRepository.findById(1L)).thenReturn(Optional.empty());
+        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> taskService.getTaskById(1L)).isInstanceOf(TaskNotFoundException.class);
+        assertThatThrownBy(() -> taskService.getTaskById(taskId, currentUserId))
+                .isInstanceOf(TaskNotFoundOrAccessException.class);
     }
 
     @Test
