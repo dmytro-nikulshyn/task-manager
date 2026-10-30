@@ -33,6 +33,8 @@ public class TaskServiceTest {
     private ProjectRepository projectRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private ProjectAccessChecker projectAccessChecker;
     @InjectMocks
     private TaskService taskService;
 
@@ -81,23 +83,18 @@ public class TaskServiceTest {
         Long taskId = 1L;
         Long currentUserId = 2L;
 
-        User currentUser = new User();
-        currentUser.setId(currentUserId);
-        currentUser.setUsername("dmytronik");
-
-        Project project = new Project();
-        project.getMembers().add(currentUser);
+        User reporter = new User();
+        reporter.setId(currentUserId);
+        reporter.setUsername("dmytronik");
 
         Task task = new Task();
         task.setId(taskId);
         task.setTitle("Task 1");
         task.setDescription("Task 1");
         task.setStatus(TaskStatus.TODO);
-        task.setReporter(currentUser);
-        task.setProject(project);
+        task.setReporter(reporter);
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
-        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(currentUser));
 
         // Act: виклик getTaskById(taskId, currentUserId)
         TaskResponseDTO taskResponseDTO = taskService.getTaskById(taskId, currentUserId);

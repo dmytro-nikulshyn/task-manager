@@ -28,6 +28,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ProjectAccessChecker projectAccessChecker;
 
     @Transactional(readOnly = true)
     public List<TaskResponseDTO> getAllTasks() {
@@ -40,14 +41,7 @@ public class TaskService {
     @Transactional(readOnly = true)
     public TaskResponseDTO getTaskById(Long id, Long currentUserId) {
         Task task = findTaskOrThrow(id);
-        User currentUser = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new UserNotFoundException(currentUserId));
-        Project project = task.getProject();
-        if (!project.getMembers().contains(currentUser)
-                && !project.getOwner().getId().equals(currentUser.getId())
-                && currentUser.getRole() != Role.ADMIN) {
-            throw new TaskNotFoundOrAccessException(id);
-        }
+        projectAccessChecker.checkViewAccess(task.getProject(), currentUserId);
         return convertToDTO(task);
     }
 
