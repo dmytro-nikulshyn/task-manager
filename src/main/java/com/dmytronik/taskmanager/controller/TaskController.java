@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -30,10 +31,17 @@ public class TaskController {
 
     private final TaskService taskService;
 
-    @GetMapping
+    @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public List<TaskResponseDTO> getAllTasks() {
         return taskService.getAllTasks();
+    }
+
+    @GetMapping
+    public List<TaskResponseDTO> getTasksByProject(
+            @RequestParam Long projectId,
+            @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return taskService.getTasksByProject(projectId, principal.getId());
     }
 
     @PostMapping

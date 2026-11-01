@@ -16,6 +16,7 @@ import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.TaskRepository;
 import com.dmytronik.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +33,7 @@ public class TaskService {
 
     @Transactional(readOnly = true)
     public List<TaskResponseDTO> getAllTasks() {
-        return taskRepository.findAll()
+        return taskRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream()
                 .map(this::convertToDTO)
                 .toList();
@@ -43,6 +44,15 @@ public class TaskService {
         Task task = findTaskOrThrow(id);
         projectAccessChecker.checkViewAccess(task.getProject(), currentUserId);
         return convertToDTO(task);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskResponseDTO> getTasksByProject(Long projectId, Long currentUserId) {
+        projectAccessChecker.getProjectWithViewAccess(projectId, currentUserId);
+        return taskRepository.findByProjectIdOrderByCreatedAtDesc(projectId)
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
     }
 
     @Transactional

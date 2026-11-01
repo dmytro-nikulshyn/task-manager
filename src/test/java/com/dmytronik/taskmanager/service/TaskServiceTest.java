@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,7 +42,7 @@ public class TaskServiceTest {
     @Test
     void getAllTasks_shouldReturnEmptyList_whenNoTasksExist() {
         // Arrange
-        when(taskRepository.findAll()).thenReturn(List.of());
+        when(taskRepository.findAll(any(Sort.class))).thenReturn(List.of());
 
         // Act
         List<TaskResponseDTO> result = taskService.getAllTasks();
@@ -65,7 +66,7 @@ public class TaskServiceTest {
         task.setStatus(TaskStatus.TODO);
         task.setReporter(reporter);
 
-        when(taskRepository.findAll()).thenReturn(List.of(task));
+        when(taskRepository.findAll(any(Sort.class))).thenReturn(List.of(task));
 
         // Act: виклик getAllTasks()
         List<TaskResponseDTO> result = taskService.getAllTasks();

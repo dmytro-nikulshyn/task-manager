@@ -2,6 +2,7 @@ package com.dmytronik.taskmanager.repository;
 
 import com.dmytronik.taskmanager.model.Task;
 import org.jspecify.annotations.NonNull;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -13,7 +14,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @EntityGraph(attributePaths = {"reporter", "assignee"})
     @Override
     @NonNull
-    List<Task> findAll();
+    List<Task> findAll(@NonNull Sort sort);
 
     @EntityGraph(attributePaths = {"reporter", "assignee"})
     @Override
@@ -21,4 +22,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     Optional<Task> findById(@NonNull Long id);
 
     boolean existsByProjectIdAndAssigneeId(Long projectId, Long assigneeId);
+
+    @EntityGraph(attributePaths = {"reporter", "assignee"})
+    List<Task> findByProjectIdOrderByCreatedAtDesc(Long projectId);
 }
