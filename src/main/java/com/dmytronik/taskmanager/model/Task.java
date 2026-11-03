@@ -36,4 +36,17 @@ public class Task {
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
+    public boolean isReporter(Long userId) {
+        return userId.equals(this.getReporter().getId());
+    }
+
+    public boolean isAssignee(Long userId) {
+        return isAssigned() && userId.equals(this.getAssignee().getId());
+    }
+
+    public boolean isAssigned() {
+        return this.getAssignee() != null;
+    }
+
 }

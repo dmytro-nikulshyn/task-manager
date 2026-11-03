@@ -26,10 +26,7 @@ public class ProjectAccessChecker {
 
     // VIEW: перевірити готовий (member/owner/admin)
     public void checkViewAccess(Project project, Long currentUserId) {
-        User currentUser = findUserOrThrow(currentUserId);
-        if (!project.getMembers().contains(currentUser)
-                && !project.getOwner().getId().equals(currentUserId)
-                && currentUser.getRole() != Role.ADMIN) {
+        if (!canView(project, currentUserId)) {
             throw new ProjectNotFoundOrAccessException(project.getId());
         }
     }
@@ -48,6 +45,13 @@ public class ProjectAccessChecker {
                 && currentUser.getRole() != Role.ADMIN) {
             throw new ProjectNotFoundOrAccessException(project.getId());
         }
+    }
+
+    public boolean canView(Project project, Long userId) {
+        User currentUser = findUserOrThrow(userId);
+        return (project.getMembers().contains(currentUser)
+                || project.getOwner().getId().equals(userId)
+                || currentUser.getRole() == Role.ADMIN);
     }
 
     // приватні хелпери (DRY)

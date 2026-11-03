@@ -59,6 +59,8 @@ public class Project {
         createdAt = LocalDateTime.now();
     }
 
-
+    public boolean isOwner(Long userId) {
+        return userId.equals(this.getOwner().getId());
+    }
 
 }
