@@ -3,7 +3,6 @@ package com.dmytronik.taskmanager.service;
 import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
-import com.dmytronik.taskmanager.model.Role;
 import com.dmytronik.taskmanager.model.User;
 import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.UserRepository;
@@ -41,8 +40,7 @@ public class ProjectAccessChecker {
     // EDIT: перевірити готовий (owner/admin)
     public void checkEditAccess(Project project, Long currentUserId) {
         User currentUser = findUserOrThrow(currentUserId);
-        if (!project.getOwner().getId().equals(currentUserId)
-                && currentUser.getRole() != Role.ADMIN) {
+        if (!project.isOwner(currentUserId) && !currentUser.isAdmin()) {
             throw new ProjectNotFoundOrAccessException(project.getId());
         }
     }
@@ -50,8 +48,8 @@ public class ProjectAccessChecker {
     public boolean canView(Project project, Long userId) {
         User currentUser = findUserOrThrow(userId);
         return (project.getMembers().contains(currentUser)
-                || project.getOwner().getId().equals(userId)
-                || currentUser.getRole() == Role.ADMIN);
+                || project.isOwner(userId)
+                || currentUser.isAdmin());
     }
 
     // приватні хелпери (DRY)

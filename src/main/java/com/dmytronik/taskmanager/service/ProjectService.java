@@ -8,7 +8,6 @@ import com.dmytronik.taskmanager.exception.MemberHasTasksException;
 import com.dmytronik.taskmanager.exception.MemberNotFoundException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
-import com.dmytronik.taskmanager.model.Role;
 import com.dmytronik.taskmanager.model.User;
 import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.TaskRepository;
@@ -43,7 +42,7 @@ public class ProjectService {
     public List<ProjectResponseDTO> getProjectsByOwnerId(Long ownerId, Long currentUserId) {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new UserNotFoundException(currentUserId));
-        if (currentUser.getRole() != Role.ADMIN && !currentUser.getId().equals(ownerId)) {
+        if (!currentUser.isAdmin() && !currentUser.getId().equals(ownerId)) {
             throw new ForbiddenOperationException("You do not have permission to view these projects");
         }
         return projectRepository.findByOwnerId(ownerId)
@@ -93,7 +92,7 @@ public class ProjectService {
     @Transactional
     public ProjectResponseDTO removeMember(Long projectId, Long userId, Long currentUserId) {
         Project project = projectAccessChecker.getProjectWithEditAccess(projectId, currentUserId);
-        if (userId.equals(project.getOwner().getId())) {
+        if (project.isOwner(userId)) {
             throw new ForbiddenOperationException("Project owner cannot be removed from members");
         }
         User user = userRepository.findById(userId)
