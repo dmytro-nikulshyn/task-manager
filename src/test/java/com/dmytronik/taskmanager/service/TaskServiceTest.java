@@ -35,7 +35,7 @@ public class TaskServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private ProjectAccessChecker projectAccessChecker;
+    private TaskAccessChecker taskAccessChecker;
     @InjectMocks
     private TaskService taskService;
 
@@ -80,7 +80,7 @@ public class TaskServiceTest {
     @Test
     void getTaskById_shouldReturnDTO_whenTaskExists() {
         // Arrange: створення Task з id=1L
-        //          налаштування mock для findById(1L)
+        //          налаштування mock для getTaskWithViewAccess(taskId, currentUserId)
         Long taskId = 1L;
         Long currentUserId = 2L;
 
@@ -95,7 +95,7 @@ public class TaskServiceTest {
         task.setStatus(TaskStatus.TODO);
         task.setReporter(reporter);
 
-        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(taskAccessChecker.getTaskWithViewAccess(taskId, currentUserId)).thenReturn(task);
 
         // Act: виклик getTaskById(taskId, currentUserId)
         TaskResponseDTO taskResponseDTO = taskService.getTaskById(taskId, currentUserId);
@@ -106,11 +106,12 @@ public class TaskServiceTest {
     }
 
     @Test
-    void getTaskById_shouldThrowException_whenTaskDoesNotExist() {
+    void getTaskById_shouldThrowException_whenTaskNotFoundOrAccessDenied() {
         Long taskId = 1L;
         Long currentUserId = 2L;
 
-        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
+        when(taskAccessChecker.getTaskWithViewAccess(taskId, currentUserId))
+                .thenThrow(new TaskNotFoundOrAccessException(taskId));
 
         assertThatThrownBy(() -> taskService.getTaskById(taskId, currentUserId))
                 .isInstanceOf(TaskNotFoundOrAccessException.class);

@@ -30,6 +30,7 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectAccessChecker projectAccessChecker;
+    private final TaskAccessChecker taskAccessChecker;
 
     @Transactional(readOnly = true)
     public List<TaskResponseDTO> getAllTasks() {
@@ -41,8 +42,7 @@ public class TaskService {
 
     @Transactional(readOnly = true)
     public TaskResponseDTO getTaskById(Long id, Long currentUserId) {
-        Task task = findTaskOrThrow(id);
-        projectAccessChecker.checkViewAccess(task.getProject(), currentUserId);
+        Task task = taskAccessChecker.getTaskWithViewAccess(id, currentUserId);
         return convertToDTO(task);
     }
 
