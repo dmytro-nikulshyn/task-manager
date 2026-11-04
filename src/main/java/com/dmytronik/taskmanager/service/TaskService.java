@@ -1,7 +1,7 @@
 package com.dmytronik.taskmanager.service;
 
 import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
-import com.dmytronik.taskmanager.dto.TaskRequestDTO;
+import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
 import com.dmytronik.taskmanager.exception.AssigneeNotFoundException;
@@ -56,8 +56,8 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskResponseDTO createTask(TaskRequestDTO taskRequestDTO, Long currentUserId) {
-        Long projectId = taskRequestDTO.getProjectId();
+    public TaskResponseDTO createTask(TaskCreateRequestDTO taskCreateRequestDTO, Long currentUserId) {
+        Long projectId = taskCreateRequestDTO.getProjectId();
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundOrAccessException(projectId));
         User currentUser = userRepository.findById(currentUserId)
@@ -65,18 +65,18 @@ public class TaskService {
         if (!project.getMembers().contains(currentUser) && currentUser.getRole() != Role.ADMIN) {
             throw new ProjectNotFoundOrAccessException(projectId);
         }
-        Task task = convertToEntity(taskRequestDTO);
+        Task task = convertToEntity(taskCreateRequestDTO);
         task.setProject(project);
         task.setReporter(currentUser);
         return convertToDTO(taskRepository.save(task));
     }
 
     @Transactional
-    public TaskResponseDTO updateTask(Long id, TaskRequestDTO taskRequestDTO) {
+    public TaskResponseDTO updateTask(Long id, TaskCreateRequestDTO taskCreateRequestDTO) {
         Task task = findTaskOrThrow(id);
-        task.setTitle(taskRequestDTO.getTitle());
-        task.setDescription(taskRequestDTO.getDescription());
-        task.setStatus(taskRequestDTO.getStatus());
+        task.setTitle(taskCreateRequestDTO.getTitle());
+        task.setDescription(taskCreateRequestDTO.getDescription());
+        task.setStatus(taskCreateRequestDTO.getStatus());
         return convertToDTO(taskRepository.save(task));
     }
 
@@ -113,7 +113,7 @@ public class TaskService {
     }
 
     // RequestDTO -> Entity:
-    private Task convertToEntity(TaskRequestDTO dto) {
+    private Task convertToEntity(TaskCreateRequestDTO dto) {
         Task task = new Task();
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());

@@ -1,7 +1,7 @@
 package com.dmytronik.taskmanager.controller;
 
 import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
-import com.dmytronik.taskmanager.dto.TaskRequestDTO;
+import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.security.CustomUserPrincipal;
 import com.dmytronik.taskmanager.service.TaskService;
@@ -46,9 +46,9 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<TaskResponseDTO> createTask(
-            @Valid @RequestBody TaskRequestDTO taskRequestDTO,
+            @Valid @RequestBody TaskCreateRequestDTO taskCreateRequestDTO,
             @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
-        TaskResponseDTO created = taskService.createTask(taskRequestDTO, customUserPrincipal.getId());
+        TaskResponseDTO created = taskService.createTask(taskCreateRequestDTO, customUserPrincipal.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -60,8 +60,8 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
-    public TaskResponseDTO updateTask(@PathVariable Long id, @Valid @RequestBody TaskRequestDTO taskRequestDTO) {
-        return taskService.updateTask(id, taskRequestDTO);
+    public TaskResponseDTO updateTask(@PathVariable Long id, @Valid @RequestBody TaskCreateRequestDTO taskCreateRequestDTO) {
+        return taskService.updateTask(id, taskCreateRequestDTO);
     }
 
     @DeleteMapping("/{id}")

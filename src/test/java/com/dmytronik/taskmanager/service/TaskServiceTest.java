@@ -1,6 +1,6 @@
 package com.dmytronik.taskmanager.service;
 
-import com.dmytronik.taskmanager.dto.TaskRequestDTO;
+import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
 import com.dmytronik.taskmanager.model.Project;
@@ -123,11 +123,11 @@ public class TaskServiceTest {
         Long projectId = 2L;
         Long taskId = 3L;
 
-        TaskRequestDTO taskRequestDTO = new TaskRequestDTO();
-        taskRequestDTO.setTitle("Task 1");
-        taskRequestDTO.setDescription("Task 1");
-        taskRequestDTO.setStatus(TaskStatus.TODO);
-        taskRequestDTO.setProjectId(projectId);
+        TaskCreateRequestDTO taskCreateRequestDTO = new TaskCreateRequestDTO();
+        taskCreateRequestDTO.setTitle("Task 1");
+        taskCreateRequestDTO.setDescription("Task 1");
+        taskCreateRequestDTO.setStatus(TaskStatus.TODO);
+        taskCreateRequestDTO.setProjectId(projectId);
 
         User currentUser = new User();
         currentUser.setId(currentUserId);
@@ -150,7 +150,7 @@ public class TaskServiceTest {
         when(taskRepository.save(any(Task.class))).thenReturn(taskCreated);
 
         // Act
-        TaskResponseDTO taskResponseDTO = taskService.createTask(taskRequestDTO, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.createTask(taskCreateRequestDTO, currentUserId);
 
         // Assert
         assertThat(taskResponseDTO.getId()).isEqualTo(taskId);

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class TaskRequestDTO {
+public class TaskCreateRequestDTO {
 
     @NotBlank(message = "Title cannot be empty")
     private String title;
