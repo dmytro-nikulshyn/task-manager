@@ -7,16 +7,13 @@ import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
 import com.dmytronik.taskmanager.exception.AssigneeNotFoundException;
 import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
-import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.TaskAlreadyCancelledException;
 import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
-import com.dmytronik.taskmanager.model.Role;
 import com.dmytronik.taskmanager.model.Task;
 import com.dmytronik.taskmanager.model.TaskStatus;
 import com.dmytronik.taskmanager.model.User;
-import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.TaskRepository;
 import com.dmytronik.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +28,6 @@ import java.util.List;
 public class TaskService {
 
     private final TaskRepository taskRepository;
-    private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectAccessChecker projectAccessChecker;
     private final TaskAccessChecker taskAccessChecker;
@@ -62,13 +58,9 @@ public class TaskService {
     @Transactional
     public TaskResponseDTO createTask(TaskCreateRequestDTO taskCreateRequestDTO, Long currentUserId) {
         Long projectId = taskCreateRequestDTO.getProjectId();
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ProjectNotFoundOrAccessException(projectId));
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new UserNotFoundException(currentUserId));
-        if (!project.getMembers().contains(currentUser) && currentUser.getRole() != Role.ADMIN) {
-            throw new ProjectNotFoundOrAccessException(projectId);
-        }
+        Project project = taskAccessChecker.getProjectForTaskCreation(projectId, currentUserId);
         Task task = convertToEntity(taskCreateRequestDTO);
         task.setProject(project);
         task.setReporter(currentUser);

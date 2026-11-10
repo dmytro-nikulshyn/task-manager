@@ -7,7 +7,6 @@ import com.dmytronik.taskmanager.model.Project;
 import com.dmytronik.taskmanager.model.Task;
 import com.dmytronik.taskmanager.model.TaskStatus;
 import com.dmytronik.taskmanager.model.User;
-import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.TaskRepository;
 import com.dmytronik.taskmanager.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -30,8 +29,6 @@ public class TaskServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
-    @Mock
-    private ProjectRepository projectRepository;
     @Mock
     private UserRepository userRepository;
     @Mock
@@ -135,11 +132,10 @@ public class TaskServiceTest {
 
         Project project = new Project();
         project.setId(projectId);
-        project.getMembers().add(currentUser);
 
         // Arrange — mock
         when(userRepository.findById(currentUserId)).thenReturn(Optional.of(currentUser));
-        when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
+        when(taskAccessChecker.getProjectForTaskCreation(projectId, currentUserId)).thenReturn(project);
         when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> {
             Task savedTask = invocation.getArgument(0);
             savedTask.setId(taskId);

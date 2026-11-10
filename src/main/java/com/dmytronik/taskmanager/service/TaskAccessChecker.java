@@ -3,6 +3,7 @@ package com.dmytronik.taskmanager.service;
 import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
 import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
+import com.dmytronik.taskmanager.model.Project;
 import com.dmytronik.taskmanager.model.Task;
 import com.dmytronik.taskmanager.model.User;
 import com.dmytronik.taskmanager.repository.TaskRepository;
@@ -36,6 +37,10 @@ public class TaskAccessChecker {
             return task;
         }
         throw new ForbiddenOperationException("You do not have permission to edit this task");
+    }
+
+    public Project getProjectForTaskCreation(Long projectId, Long currentUserId) {
+        return projectAccessChecker.getProjectWithViewAccess(projectId, currentUserId);
     }
 
     private Task findTaskOrThrow(Long id) {
