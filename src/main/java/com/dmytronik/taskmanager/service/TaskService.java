@@ -3,14 +3,18 @@ package com.dmytronik.taskmanager.service;
 import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
+import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
 import com.dmytronik.taskmanager.exception.AssigneeNotFoundException;
+import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
 import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
+import com.dmytronik.taskmanager.exception.TaskAlreadyCancelledException;
 import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
 import com.dmytronik.taskmanager.model.Role;
 import com.dmytronik.taskmanager.model.Task;
+import com.dmytronik.taskmanager.model.TaskStatus;
 import com.dmytronik.taskmanager.model.User;
 import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.TaskRepository;
@@ -72,11 +76,18 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskResponseDTO updateTask(Long id, TaskCreateRequestDTO taskCreateRequestDTO) {
-        Task task = findTaskOrThrow(id);
-        task.setTitle(taskCreateRequestDTO.getTitle());
-        task.setDescription(taskCreateRequestDTO.getDescription());
-        task.setStatus(taskCreateRequestDTO.getStatus());
+    public TaskResponseDTO updateTask(Long id, TaskUpdateRequestDTO taskUpdateRequestDTO, Long currentUserId) {
+        Task task = taskAccessChecker.getTaskWithEditAccess(id, currentUserId);
+        if (taskUpdateRequestDTO.getStatus() == TaskStatus.CANCELLED) {
+            throw new InvalidTaskStatusException(
+                    "CANCELLED cannot be set via an update, use a separate cancellation operation for this.");
+        }
+        if (task.getStatus() == TaskStatus.CANCELLED) {
+            throw new TaskAlreadyCancelledException(id);
+        }
+        task.setTitle(taskUpdateRequestDTO.getTitle());
+        task.setDescription(taskUpdateRequestDTO.getDescription());
+        task.setStatus(taskUpdateRequestDTO.getStatus());
         return convertToDTO(taskRepository.save(task));
     }
 

@@ -3,6 +3,7 @@ package com.dmytronik.taskmanager.controller;
 import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
+import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
 import com.dmytronik.taskmanager.security.CustomUserPrincipal;
 import com.dmytronik.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
@@ -60,8 +61,11 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
-    public TaskResponseDTO updateTask(@PathVariable Long id, @Valid @RequestBody TaskCreateRequestDTO taskCreateRequestDTO) {
-        return taskService.updateTask(id, taskCreateRequestDTO);
+    public TaskResponseDTO updateTask(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskUpdateRequestDTO taskUpdateRequestDTO,
+            @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
+        return taskService.updateTask(id, taskUpdateRequestDTO, customUserPrincipal.getId());
     }
 
     @DeleteMapping("/{id}")

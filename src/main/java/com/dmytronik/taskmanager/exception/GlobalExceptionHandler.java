@@ -87,4 +87,23 @@ public class GlobalExceptionHandler {
                 "message", ex.getMessage()
         );
     }
+
+    @ExceptionHandler(InvalidTaskStatusException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleInvalidTaskStatusException(InvalidTaskStatusException ex) {
+        return Map.of(
+                "error", "Bad Request",
+                "message", ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(TaskAlreadyCancelledException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleTaskAlreadyCancelledException(TaskAlreadyCancelledException ex) {
+        return Map.of(
+                "error", "Conflict",
+                "message", ex.getMessage()
+        );
+    }
+
 }
