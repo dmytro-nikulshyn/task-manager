@@ -127,7 +127,6 @@ public class TaskServiceTest {
         TaskCreateRequestDTO taskCreateRequestDTO = new TaskCreateRequestDTO();
         taskCreateRequestDTO.setTitle("Task 1");
         taskCreateRequestDTO.setDescription("Task 1");
-        taskCreateRequestDTO.setStatus(TaskStatus.TODO);
         taskCreateRequestDTO.setProjectId(projectId);
 
         User currentUser = new User();
@@ -138,17 +137,14 @@ public class TaskServiceTest {
         project.setId(projectId);
         project.getMembers().add(currentUser);
 
-        Task taskCreated = new Task();
-        taskCreated.setId(taskId);
-        taskCreated.setTitle("Task 1");
-        taskCreated.setDescription("Task 1");
-        taskCreated.setStatus(TaskStatus.TODO);
-        taskCreated.setReporter(currentUser);
-
         // Arrange — mock
         when(userRepository.findById(currentUserId)).thenReturn(Optional.of(currentUser));
         when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
-        when(taskRepository.save(any(Task.class))).thenReturn(taskCreated);
+        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> {
+            Task savedTask = invocation.getArgument(0);
+            savedTask.setId(taskId);
+            return savedTask;
+        });
 
         // Act
         TaskResponseDTO taskResponseDTO = taskService.createTask(taskCreateRequestDTO, currentUserId);

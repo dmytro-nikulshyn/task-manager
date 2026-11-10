@@ -128,7 +128,7 @@ public class TaskService {
         Task task = new Task();
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
-        task.setStatus(dto.getStatus());
+        task.setStatus(TaskStatus.TODO);
         return task;
     }
 }

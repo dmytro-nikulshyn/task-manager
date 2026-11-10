@@ -1,6 +1,5 @@
 package com.dmytronik.taskmanager.dto;
 
-import com.dmytronik.taskmanager.model.TaskStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -11,8 +10,6 @@ public class TaskCreateRequestDTO {
     @NotBlank(message = "Title cannot be empty")
     private String title;
     private String description;
-    @NotNull(message = "Status cannot be null")
-    private TaskStatus status;
     @NotNull(message = "Project cannot be empty")
     private Long projectId;
 }
