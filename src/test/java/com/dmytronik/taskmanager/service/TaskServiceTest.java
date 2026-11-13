@@ -43,7 +43,7 @@ public class TaskServiceTest {
     @Test
     void getAllTasks_shouldReturnEmptyList_whenNoTasksExist() {
         // Arrange
-        when(taskRepository.findAll(any(Sort.class))).thenReturn(List.of());
+        when(taskRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))).thenReturn(List.of());
 
         // Act
         List<TaskResponseDTO> result = taskService.getAllTasks();
@@ -63,11 +63,11 @@ public class TaskServiceTest {
         Task task = new Task();
         task.setId(1L);
         task.setTitle("Task 1");
-        task.setDescription("Task 1");
+        task.setDescription("Task 1 description");
         task.setStatus(TaskStatus.TODO);
         task.setReporter(reporter);
 
-        when(taskRepository.findAll(any(Sort.class))).thenReturn(List.of(task));
+        when(taskRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))).thenReturn(List.of(task));
 
         // Act: виклик getAllTasks()
         List<TaskResponseDTO> result = taskService.getAllTasks();
@@ -92,7 +92,7 @@ public class TaskServiceTest {
         Task task = new Task();
         task.setId(taskId);
         task.setTitle("Task 1");
-        task.setDescription("Task 1");
+        task.setDescription("Task 1 description");
         task.setStatus(TaskStatus.TODO);
         task.setReporter(reporter);
 
@@ -121,13 +121,13 @@ public class TaskServiceTest {
     @Test
     void createTask_shouldReturnDTO_whenTaskCreated() {
         // Arrange — input data
-        Long currentUserId = 1L;
+        Long taskId = 1L;
         Long projectId = 2L;
-        Long taskId = 3L;
+        Long currentUserId = 3L;
 
         TaskCreateRequestDTO taskCreateRequestDTO = new TaskCreateRequestDTO();
         taskCreateRequestDTO.setTitle("Task 1");
-        taskCreateRequestDTO.setDescription("Task 1");
+        taskCreateRequestDTO.setDescription("Task 1 description");
         taskCreateRequestDTO.setProjectId(projectId);
 
         User currentUser = new User();
@@ -152,6 +152,7 @@ public class TaskServiceTest {
         // Assert
         assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
         assertThat(taskResponseDTO.getTitle()).isEqualTo("Task 1");
+        assertThat(taskResponseDTO.getDescription()).isEqualTo("Task 1 description");
         assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.TODO);
         assertThat(taskResponseDTO.getReporter().getId()).isEqualTo(currentUserId);
     }
