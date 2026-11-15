@@ -89,13 +89,17 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskResponseDTO assignTask(Long id, TaskAssigneeRequestDTO taskAssigneeRequestDTO) {
-        Task task = findTaskOrThrow(id);
-        Long assigneeId = taskAssigneeRequestDTO.getAssigneeId();
-        User assignee = (assigneeId != null)
-                ? userRepository.findById(assigneeId).orElseThrow(() -> new AssigneeNotFoundException(assigneeId))
+    public TaskResponseDTO assignTask(Long id, TaskAssigneeRequestDTO taskAssigneeRequestDTO, Long currentUserId) {
+        Long newAssigneeId = taskAssigneeRequestDTO.getAssigneeId();
+        Task task = taskAccessChecker.getTaskWithAssignAccess(id, currentUserId, newAssigneeId);
+        User newAssignee = (newAssigneeId != null)
+                ? task.getProject().findMember(newAssigneeId)
+                .orElseThrow(() -> new AssigneeNotFoundException(newAssigneeId))
                 : null;
-        task.setAssignee(assignee);
+        if (task.getStatus() == TaskStatus.CANCELLED) {
+            throw new TaskAlreadyCancelledException(id);
+        }
+        task.setAssignee(newAssignee);
         return convertToDTO(taskRepository.save(task));
     }
 

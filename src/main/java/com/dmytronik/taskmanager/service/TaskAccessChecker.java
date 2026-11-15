@@ -43,6 +43,17 @@ public class TaskAccessChecker {
         return projectAccessChecker.getProjectWithViewAccess(projectId, currentUserId);
     }
 
+    public Task getTaskWithAssignAccess(Long taskId, Long currentUserId, Long newAssigneeId) {
+        Task task = getTaskWithViewAccess(taskId, currentUserId);
+        User currentUser = findUserOrThrow(currentUserId);
+        if (currentUser.isAdmin() || task.getProject().isOwner(currentUserId)
+                || (!task.isAssigned() && currentUserId.equals(newAssigneeId))
+                || (task.isAssignee(currentUserId) && newAssigneeId == null)) {
+            return task;
+        }
+        throw new ForbiddenOperationException("You do not have permission to assign this task");
+    }
+
     private Task findTaskOrThrow(Long id) {
         return taskRepository.findById(id)
                 .orElseThrow(() -> new TaskNotFoundOrAccessException(id));

@@ -22,6 +22,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Entity
@@ -61,6 +62,12 @@ public class Project {
 
     public boolean isOwner(Long userId) {
         return userId.equals(this.getOwner().getId());
+    }
+
+    public Optional<User> findMember(Long userId) {
+        return members.stream()
+                .filter(member -> member.getId().equals(userId))
+                .findFirst();
     }
 
 }

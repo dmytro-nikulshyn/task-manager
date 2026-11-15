@@ -75,7 +75,10 @@ public class TaskController {
     }
 
     @PatchMapping("/{id}/assignee")
-    public TaskResponseDTO assignTask(@PathVariable Long id, @RequestBody TaskAssigneeRequestDTO taskAssigneeRequestDTO) {
-        return taskService.assignTask(id, taskAssigneeRequestDTO);
+    public TaskResponseDTO assignTask(
+            @PathVariable Long id,
+            @RequestBody TaskAssigneeRequestDTO taskAssigneeRequestDTO,
+            @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
+        return taskService.assignTask(id, taskAssigneeRequestDTO, customUserPrincipal.getId());
     }
 }
