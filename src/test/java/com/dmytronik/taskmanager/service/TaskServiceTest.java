@@ -1,8 +1,10 @@
 package com.dmytronik.taskmanager.service;
 
+import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
+import com.dmytronik.taskmanager.exception.AssigneeNotFoundException;
 import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
 import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
 import com.dmytronik.taskmanager.exception.TaskAlreadyCancelledException;
@@ -265,5 +267,157 @@ public class TaskServiceTest {
 
         assertThatThrownBy(() -> taskService.updateTask(taskId, taskUpdateRequestDTO, currentUserId))
                 .isInstanceOf(InvalidTaskStatusException.class);
+    }
+
+    @Test
+    void assignTask_shouldReturnDTO_whenTaskAssigned() {
+        // Arrange
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+        Long newAssigneeId = 3L;
+
+        TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
+        taskAssigneeRequestDTO.setAssigneeId(newAssigneeId);
+
+        Project project = new Project();
+        User member = new User();
+        member.setId(newAssigneeId);
+        project.getMembers().add(member);
+
+        // reporter is necessary for creating response in convertToDTO
+        User reporter = new User();
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setProject(project);
+        task.setReporter(reporter);
+
+        // Arrange - mock
+        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        // Act
+        TaskResponseDTO taskResponseDTO = taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId);
+
+        // Assert
+        assertThat(taskResponseDTO.getAssignee().getId()).isEqualTo(newAssigneeId);
+        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
+    }
+
+    @Test
+    void assignTask_shouldReturnDTO_whenTaskUnassigned() {
+        // Arrange
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+        Long newAssigneeId = null;
+
+        TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
+        taskAssigneeRequestDTO.setAssigneeId(newAssigneeId);
+
+        // reporter is necessary for creating response in convertToDTO
+        User reporter = new User();
+
+        User currentAssignee = new User();
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setReporter(reporter);
+        task.setAssignee(currentAssignee);
+
+        // Arrange - mock
+        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        // Act
+        TaskResponseDTO taskResponseDTO = taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId);
+
+        // Assert
+        assertThat(taskResponseDTO.getAssignee()).isNull();
+        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
+    }
+
+    @Test
+    void assignTask_shouldThrowAssigneeNotFound_whenNewAssigneeNotMember() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+        Long newAssigneeId = 3L;
+
+        TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
+        taskAssigneeRequestDTO.setAssigneeId(newAssigneeId);
+
+        Project project = new Project();
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setProject(project);
+
+        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+
+        assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
+                .isInstanceOf(AssigneeNotFoundException.class);
+    }
+
+    @Test
+    void assignTask_shouldThrowTaskAlreadyCancelled_whenTaskAlreadyCancelled() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+        Long newAssigneeId = 3L;
+
+        TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
+        taskAssigneeRequestDTO.setAssigneeId(newAssigneeId);
+
+        Project project = new Project();
+        User member = new User();
+        member.setId(newAssigneeId);
+        project.getMembers().add(member);
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setProject(project);
+        task.setStatus(TaskStatus.CANCELLED);
+
+        // Arrange - mock
+        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+
+        assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
+                .isInstanceOf(TaskAlreadyCancelledException.class);
+    }
+
+    @Test
+    void assignTask_shouldThrowAssigneeNotFound_whenBothNewAssigneeNotMemberAndTaskAlreadyCancelled() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+        Long newAssigneeId = 3L;
+
+        TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
+        taskAssigneeRequestDTO.setAssigneeId(newAssigneeId);
+
+        Project project = new Project();
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setProject(project);
+        task.setStatus(TaskStatus.CANCELLED);
+
+        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+
+        assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
+                .isInstanceOf(AssigneeNotFoundException.class);
+    }
+
+    @Test
+    void assignTask_shouldThrowForbidden_whenUserCannotAssignTask() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+        Long newAssigneeId = 3L;
+
+        TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
+        taskAssigneeRequestDTO.setAssigneeId(newAssigneeId);
+
+        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId))
+                .thenThrow(new ForbiddenOperationException("Assign access denied"));
+
+        assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
+                .isInstanceOf(ForbiddenOperationException.class);
     }
 }
