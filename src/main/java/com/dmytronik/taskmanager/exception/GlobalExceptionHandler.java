@@ -106,4 +106,12 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(IllegalTaskStatusTransitionException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleIllegalTaskStatusTransitionException(IllegalTaskStatusTransitionException ex) {
+        return Map.of(
+                "error", "Conflict",
+                "message", ex.getMessage()
+        );
+    }
 }

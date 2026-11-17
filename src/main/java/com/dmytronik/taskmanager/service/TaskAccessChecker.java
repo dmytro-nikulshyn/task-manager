@@ -54,6 +54,18 @@ public class TaskAccessChecker {
         throw new ForbiddenOperationException("You do not have permission to assign this task");
     }
 
+    public Task getTaskWithCancellationAccess(Long taskId, Long currentUserId) {
+        Task task = getTaskWithViewAccess(taskId, currentUserId);
+        User currentUser = findUserOrThrow(currentUserId);
+        if (currentUser.isAdmin()
+                || task.getProject().isOwner(currentUserId)
+                || task.isAssignee(currentUserId)
+                || task.isReporter(currentUserId)) {
+            return task;
+        }
+        throw new ForbiddenOperationException("You do not have permission to cancel or reopen this task");
+    }
+
     private Task findTaskOrThrow(Long id) {
         return taskRepository.findById(id)
                 .orElseThrow(() -> new TaskNotFoundOrAccessException(id));

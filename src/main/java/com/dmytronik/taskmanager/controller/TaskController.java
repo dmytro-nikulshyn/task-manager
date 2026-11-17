@@ -81,4 +81,16 @@ public class TaskController {
             @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
         return taskService.assignTask(id, taskAssigneeRequestDTO, customUserPrincipal.getId());
     }
+
+    @PostMapping("/{id}/cancel")
+    public TaskResponseDTO cancelTask(@PathVariable Long id,
+                                      @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
+        return taskService.cancelTask(id, customUserPrincipal.getId());
+    }
+
+    @PostMapping("/{id}/reopen")
+    public TaskResponseDTO reopenTask(@PathVariable Long id,
+                                      @AuthenticationPrincipal CustomUserPrincipal customUserPrincipal) {
+        return taskService.reopenTask(id, customUserPrincipal.getId());
+    }
 }

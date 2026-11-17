@@ -6,6 +6,7 @@ import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
 import com.dmytronik.taskmanager.exception.AssigneeNotFoundException;
+import com.dmytronik.taskmanager.exception.IllegalTaskStatusTransitionException;
 import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
 import com.dmytronik.taskmanager.exception.TaskAlreadyCancelledException;
 import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
@@ -100,6 +101,29 @@ public class TaskService {
             throw new TaskAlreadyCancelledException(id);
         }
         task.setAssignee(newAssignee);
+        return convertToDTO(taskRepository.save(task));
+    }
+
+    @Transactional
+    public TaskResponseDTO cancelTask(Long id, Long currentUserId) {
+        Task task = taskAccessChecker.getTaskWithCancellationAccess(id, currentUserId);
+        if (task.getStatus() == TaskStatus.CANCELLED) {
+            throw new TaskAlreadyCancelledException(id);
+        }
+        if (task.getStatus() == TaskStatus.DONE) {
+            throw new IllegalTaskStatusTransitionException(id, TaskStatus.DONE, TaskStatus.CANCELLED);
+        }
+        task.setStatus(TaskStatus.CANCELLED);
+        return convertToDTO(taskRepository.save(task));
+    }
+
+    @Transactional
+    public TaskResponseDTO reopenTask(Long id, Long currentUserId) {
+        Task task = taskAccessChecker.getTaskWithCancellationAccess(id, currentUserId);
+        if (task.getStatus() != TaskStatus.CANCELLED) {
+            throw new IllegalTaskStatusTransitionException(id, task.getStatus(), TaskStatus.TODO);
+        }
+        task.setStatus(TaskStatus.TODO);
         return convertToDTO(taskRepository.save(task));
     }
 
