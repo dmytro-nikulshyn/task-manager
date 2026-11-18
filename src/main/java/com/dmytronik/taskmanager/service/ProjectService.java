@@ -8,6 +8,7 @@ import com.dmytronik.taskmanager.exception.MemberHasTasksException;
 import com.dmytronik.taskmanager.exception.MemberNotFoundException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
+import com.dmytronik.taskmanager.model.TaskStatus;
 import com.dmytronik.taskmanager.model.User;
 import com.dmytronik.taskmanager.repository.ProjectRepository;
 import com.dmytronik.taskmanager.repository.TaskRepository;
@@ -97,7 +98,7 @@ public class ProjectService {
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new MemberNotFoundException(userId));
-        if (taskRepository.existsByProjectIdAndAssigneeId(projectId, userId)) {
+        if (taskRepository.existsByProjectIdAndAssigneeIdAndStatusIn(projectId, userId, TaskStatus.ACTIVE)) {
             throw new MemberHasTasksException(userId, projectId);
         }
         project.getMembers().remove(user);
