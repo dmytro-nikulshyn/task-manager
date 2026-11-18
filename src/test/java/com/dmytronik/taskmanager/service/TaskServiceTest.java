@@ -4,7 +4,7 @@ import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
-import com.dmytronik.taskmanager.exception.AssigneeNotFoundException;
+import com.dmytronik.taskmanager.exception.NotProjectMemberException;
 import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
 import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
 import com.dmytronik.taskmanager.exception.TaskAlreadyCancelledException;
@@ -354,7 +354,7 @@ public class TaskServiceTest {
         when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
 
         assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
-                .isInstanceOf(AssigneeNotFoundException.class);
+                .isInstanceOf(NotProjectMemberException.class);
     }
 
     @Test
@@ -402,7 +402,7 @@ public class TaskServiceTest {
         when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
 
         assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
-                .isInstanceOf(AssigneeNotFoundException.class);
+                .isInstanceOf(NotProjectMemberException.class);
     }
 
     @Test

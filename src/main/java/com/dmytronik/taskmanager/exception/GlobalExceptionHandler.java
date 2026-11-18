@@ -61,9 +61,9 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(AssigneeNotFoundException.class)
+    @ExceptionHandler(NotProjectMemberException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> handleAssigneeNotFound(AssigneeNotFoundException ex) {
+    public Map<String, String> handleAssigneeNotFound(NotProjectMemberException ex) {
         return Map.of(
                 "error", "Not Found",
                 "message", ex.getMessage()

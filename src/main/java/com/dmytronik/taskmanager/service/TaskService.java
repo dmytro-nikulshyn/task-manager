@@ -5,7 +5,7 @@ import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
-import com.dmytronik.taskmanager.exception.AssigneeNotFoundException;
+import com.dmytronik.taskmanager.exception.NotProjectMemberException;
 import com.dmytronik.taskmanager.exception.IllegalTaskStatusTransitionException;
 import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
 import com.dmytronik.taskmanager.exception.TaskAlreadyCancelledException;
@@ -95,7 +95,7 @@ public class TaskService {
         Task task = taskAccessChecker.getTaskWithAssignAccess(id, currentUserId, newAssigneeId);
         User newAssignee = (newAssigneeId != null)
                 ? task.getProject().findMember(newAssigneeId)
-                .orElseThrow(() -> new AssigneeNotFoundException(newAssigneeId))
+                .orElseThrow(() -> new NotProjectMemberException(newAssigneeId))
                 : null;
         if (task.getStatus() == TaskStatus.CANCELLED) {
             throw new TaskAlreadyCancelledException(id);
