@@ -6,6 +6,7 @@ import com.dmytronik.taskmanager.dto.UserSummaryDTO;
 import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
 import com.dmytronik.taskmanager.exception.MemberHasTasksException;
 import com.dmytronik.taskmanager.exception.MemberNotFoundException;
+import com.dmytronik.taskmanager.exception.NotProjectMemberException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
 import com.dmytronik.taskmanager.model.TaskStatus;
@@ -96,8 +97,8 @@ public class ProjectService {
         if (project.isOwner(userId)) {
             throw new ForbiddenOperationException("Project owner cannot be removed from members");
         }
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new MemberNotFoundException(userId));
+        User user = project.findMember(userId)
+                .orElseThrow(() -> new NotProjectMemberException(userId));
         if (taskRepository.existsByProjectIdAndAssigneeIdAndStatusIn(projectId, userId, TaskStatus.ACTIVE)) {
             throw new MemberHasTasksException(userId, projectId);
         }
