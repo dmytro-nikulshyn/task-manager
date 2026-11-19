@@ -124,6 +124,9 @@ public class TaskService {
             throw new IllegalTaskStatusTransitionException(id, task.getStatus(), TaskStatus.TODO);
         }
         task.setStatus(TaskStatus.TODO);
+        if (task.isAssigned() && task.getProject().findMember(task.getAssignee().getId()).isEmpty()) {
+            task.setAssignee(null);
+        }
         return convertToDTO(taskRepository.save(task));
     }
 
