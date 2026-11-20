@@ -5,11 +5,10 @@ import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
-import com.dmytronik.taskmanager.exception.NotProjectMemberException;
 import com.dmytronik.taskmanager.exception.IllegalTaskStatusTransitionException;
 import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
+import com.dmytronik.taskmanager.exception.NotProjectMemberException;
 import com.dmytronik.taskmanager.exception.TaskAlreadyCancelledException;
-import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
 import com.dmytronik.taskmanager.model.Task;
@@ -84,9 +83,10 @@ public class TaskService {
         return convertToDTO(taskRepository.save(task));
     }
 
-    public void deleteTask(Long id) {
-        findTaskOrThrow(id);
-        taskRepository.deleteById(id);
+    @Transactional
+    public void deleteTask(Long id, Long currentUserId) {
+        Task task = taskAccessChecker.getTaskWithDeleteAccess(id, currentUserId);
+        taskRepository.delete(task);
     }
 
     @Transactional
@@ -128,11 +128,6 @@ public class TaskService {
             task.setAssignee(null);
         }
         return convertToDTO(taskRepository.save(task));
-    }
-
-    private Task findTaskOrThrow(Long id) {
-        return taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundOrAccessException(id));
     }
 
     // Entity -> ResponseDTO:
