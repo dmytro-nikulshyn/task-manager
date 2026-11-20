@@ -78,8 +78,14 @@ public class ProjectService {
 
     @Transactional
     public void deleteProject(Long id, Long currentUserId) {
-        projectAccessChecker.getProjectWithEditAccess(id, currentUserId);
-        projectRepository.deleteById(id);
+        Project project = projectAccessChecker.getProjectWithEditAccess(id, currentUserId);
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new UserNotFoundException(currentUserId));
+        if (!currentUser.isAdmin() && taskRepository.existsByProjectId(id)){
+            throw new ForbiddenOperationException("Only an admin can delete a project that has tasks");
+        }
+        taskRepository.deleteAllByProjectId(id);
+        projectRepository.delete(project);
     }
 
     @Transactional
