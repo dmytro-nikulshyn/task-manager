@@ -4,6 +4,7 @@ import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
+import com.dmytronik.taskmanager.exception.IllegalTaskStatusTransitionException;
 import com.dmytronik.taskmanager.exception.NotProjectMemberException;
 import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
 import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
@@ -28,6 +29,7 @@ import java.util.Optional;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -337,7 +339,7 @@ public class TaskServiceTest {
     }
 
     @Test
-    void assignTask_shouldThrowAssigneeNotFound_whenNewAssigneeNotMember() {
+    void assignTask_shouldThrowNotProjectMember_whenNewAssigneeNotMember() {
         Long taskId = 1L;
         Long currentUserId = 2L;
         Long newAssigneeId = 3L;
@@ -384,7 +386,7 @@ public class TaskServiceTest {
     }
 
     @Test
-    void assignTask_shouldThrowAssigneeNotFound_whenBothNewAssigneeNotMemberAndTaskAlreadyCancelled() {
+    void assignTask_shouldThrowNotProjectMember_whenBothNewAssigneeNotMemberAndTaskAlreadyCancelled() {
         Long taskId = 1L;
         Long currentUserId = 2L;
         Long newAssigneeId = 3L;
@@ -418,6 +420,203 @@ public class TaskServiceTest {
                 .thenThrow(new ForbiddenOperationException("Assign access denied"));
 
         assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
+                .isInstanceOf(ForbiddenOperationException.class);
+    }
+
+    @Test
+    void cancelTask_shouldReturnDTO_whenTaskCancelled() {
+        // Arrange
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+
+        // reporter is necessary for creating response in convertToDTO
+        User reporter = new User();
+        User assignee = new User();
+        assignee.setId(3L);
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setStatus(TaskStatus.TODO);
+        task.setReporter(reporter);
+        task.setAssignee(assignee);
+
+        // Arrange mock
+        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        // Act
+        TaskResponseDTO taskResponseDTO = taskService.cancelTask(taskId, currentUserId);
+
+        // Assert
+        assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.CANCELLED);
+        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
+        assertThat(taskResponseDTO.getAssignee().getId()).isEqualTo(assignee.getId());
+    }
+
+    @Test
+    void cancelTask_shouldThrowTaskAlreadyCancelled_whenTaskAlreadyCancelled() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+
+        Task task = new Task();
+        task.setStatus(TaskStatus.CANCELLED);
+
+        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+
+        assertThatThrownBy(() -> taskService.cancelTask(taskId, currentUserId))
+                .isInstanceOf(TaskAlreadyCancelledException.class);
+    }
+
+    @Test
+    void cancelTask_shouldThrowIllegalTaskStatusTransition_whenTaskDone() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+
+        Task task = new Task();
+        task.setStatus(TaskStatus.DONE);
+
+        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+
+        assertThatThrownBy(() -> taskService.cancelTask(taskId, currentUserId))
+                .isInstanceOf(IllegalTaskStatusTransitionException.class);
+    }
+
+    @Test
+    void cancelTask_shouldThrowForbidden_whenUserCannotCancelTask() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+
+        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId))
+                .thenThrow(new ForbiddenOperationException("Cancellation access denied"));
+
+        assertThatThrownBy(() -> taskService.cancelTask(taskId, currentUserId))
+                .isInstanceOf(ForbiddenOperationException.class);
+    }
+
+    @Test
+    void reopenTask_shouldKeepAssignee_whenAssigneeStillMember() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+        Long assigneeId = 3L;
+
+        User assignee = new User();
+        assignee.setId(assigneeId);
+
+        User reporter = new User();
+
+        Project project = new Project();
+        project.getMembers().add(assignee);
+
+        Task task = new Task();
+        task.setStatus(TaskStatus.CANCELLED);
+        task.setAssignee(assignee);
+        task.setReporter(reporter);
+        task.setProject(project);
+
+        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        TaskResponseDTO taskResponseDTO = taskService.reopenTask(taskId, currentUserId);
+
+        assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.TODO);
+        assertThat(taskResponseDTO.getAssignee().getId()).isEqualTo(assigneeId);
+    }
+
+    @Test
+    void reopenTask_shouldUnassign_whenAssigneeNotMember() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+        Long assigneeId = 3L;
+
+        User assignee = new User();
+        assignee.setId(assigneeId);
+
+        User reporter = new User();
+
+        Project project = new Project();
+
+        Task task = new Task();
+        task.setStatus(TaskStatus.CANCELLED);
+        task.setAssignee(assignee);
+        task.setReporter(reporter);
+        task.setProject(project);
+
+        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        TaskResponseDTO taskResponseDTO = taskService.reopenTask(taskId, currentUserId);
+
+        assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.TODO);
+        assertThat(taskResponseDTO.getAssignee()).isNull();
+    }
+
+    @Test
+    void reopenTask_shouldKeepUnassigned_whenHasNoAssignee() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+
+        Task task = new Task();
+        task.setStatus(TaskStatus.CANCELLED);
+        task.setReporter(new User());
+
+        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskRepository.save(task)).thenReturn(task);
+
+        TaskResponseDTO taskResponseDTO = taskService.reopenTask(taskId, currentUserId);
+
+        assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.TODO);
+        assertThat(taskResponseDTO.getAssignee()).isNull();
+    }
+
+    @Test
+    void reopenTask_shouldThrowIllegalTaskStatusTransition_whenTaskNotCancelled() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+
+        Task task = new Task();
+        task.setStatus(TaskStatus.TODO);
+
+        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+
+        assertThatThrownBy(() -> taskService.reopenTask(taskId, currentUserId))
+                .isInstanceOf(IllegalTaskStatusTransitionException.class);
+    }
+
+    @Test
+    void reopenTask_shouldThrowForbidden_whenUserCannotReopenTask() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+
+        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId))
+                .thenThrow(new ForbiddenOperationException("Reopening access denied"));
+
+        assertThatThrownBy(() -> taskService.reopenTask(taskId, currentUserId))
+                .isInstanceOf(ForbiddenOperationException.class);
+    }
+
+    @Test
+    void deleteTask_shouldDeleteTask_whenUserHasDeleteAccess() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+        Task task = new Task();
+        task.setId(taskId);
+
+        when(taskAccessChecker.getTaskWithDeleteAccess(taskId, currentUserId)).thenReturn(task);
+
+        taskService.deleteTask(taskId, currentUserId);
+
+        verify(taskRepository).delete(task);
+    }
+
+    @Test
+    void deleteTask_shouldThrowForbidden_whenUserCannotDelete() {
+        Long taskId = 1L;
+        Long currentUserId = 2L;
+
+        when(taskAccessChecker.getTaskWithDeleteAccess(taskId, currentUserId))
+                .thenThrow(new ForbiddenOperationException("Delete access denied"));
+
+        assertThatThrownBy(() -> taskService.deleteTask(taskId, currentUserId))
                 .isInstanceOf(ForbiddenOperationException.class);
     }
 }
