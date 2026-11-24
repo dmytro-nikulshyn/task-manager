@@ -4,10 +4,10 @@ import com.dmytronik.taskmanager.dto.TaskAssigneeRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.TaskResponseDTO;
 import com.dmytronik.taskmanager.dto.TaskUpdateRequestDTO;
-import com.dmytronik.taskmanager.exception.IllegalTaskStatusTransitionException;
-import com.dmytronik.taskmanager.exception.NotProjectMemberException;
 import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
+import com.dmytronik.taskmanager.exception.IllegalTaskStatusTransitionException;
 import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
+import com.dmytronik.taskmanager.exception.NotProjectMemberException;
 import com.dmytronik.taskmanager.exception.TaskAlreadyCancelledException;
 import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
 import com.dmytronik.taskmanager.model.Project;
@@ -26,14 +26,17 @@ import org.springframework.data.domain.Sort;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TaskServiceTest {
+
+    private static final Long TASK_ID = 1L;
+    private static final Long CURRENT_USER_ID = 2L;
 
     @Mock
     private TaskRepository taskRepository;
@@ -46,88 +49,51 @@ public class TaskServiceTest {
 
     @Test
     void getAllTasks_shouldReturnEmptyList_whenNoTasksExist() {
-        // Arrange
         when(taskRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))).thenReturn(List.of());
 
-        // Act
         List<TaskResponseDTO> result = taskService.getAllTasks();
 
-        // Assert
         assertThat(result).isEmpty();
     }
 
     @Test
     void getAllTasks_shouldReturnListOfDTOs_whenTasksExist() {
-        // Arrange: створення Task об'єкт з даними
-        //          налаштування mock щоб повертав список з цим Task
-        User reporter = new User();
-        reporter.setId(1L);
-        reporter.setUsername("dmytronik");
-
-        Task task = new Task();
-        task.setId(1L);
+        Task task = newTask();
         task.setTitle("Task 1");
-        task.setDescription("Task 1 description");
-        task.setStatus(TaskStatus.TODO);
-        task.setReporter(reporter);
 
         when(taskRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))).thenReturn(List.of(task));
 
-        // Act: виклик getAllTasks()
         List<TaskResponseDTO> result = taskService.getAllTasks();
 
-        // Assert: перевірка що результат має розмір 1
-        //         і що title співпадає
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("Task 1");
     }
 
     @Test
     void getTaskById_shouldReturnDTO_whenTaskExists() {
-        // Arrange: створення Task з id=1L
-        //          налаштування mock для getTaskWithViewAccess(taskId, currentUserId)
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        User reporter = new User();
-        reporter.setId(currentUserId);
-        reporter.setUsername("dmytronik");
-
-        Task task = new Task();
-        task.setId(taskId);
+        Task task = newTask();
         task.setTitle("Task 1");
-        task.setDescription("Task 1 description");
-        task.setStatus(TaskStatus.TODO);
-        task.setReporter(reporter);
 
-        when(taskAccessChecker.getTaskWithViewAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithViewAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
 
-        // Act: виклик getTaskById(taskId, currentUserId)
-        TaskResponseDTO taskResponseDTO = taskService.getTaskById(taskId, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.getTaskById(TASK_ID, CURRENT_USER_ID);
 
-        // Assert: перевірка що повернутий DTO має правильний id і title
-        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
+        assertThat(taskResponseDTO.getId()).isEqualTo(TASK_ID);
         assertThat(taskResponseDTO.getTitle()).isEqualTo("Task 1");
     }
 
     @Test
     void getTaskById_shouldThrowException_whenTaskNotFoundOrAccessDenied() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
+        when(taskAccessChecker.getTaskWithViewAccess(TASK_ID, CURRENT_USER_ID))
+                .thenThrow(new TaskNotFoundOrAccessException(TASK_ID));
 
-        when(taskAccessChecker.getTaskWithViewAccess(taskId, currentUserId))
-                .thenThrow(new TaskNotFoundOrAccessException(taskId));
-
-        assertThatThrownBy(() -> taskService.getTaskById(taskId, currentUserId))
+        assertThatThrownBy(() -> taskService.getTaskById(TASK_ID, CURRENT_USER_ID))
                 .isInstanceOf(TaskNotFoundOrAccessException.class);
     }
 
     @Test
     void createTask_shouldReturnDTO_whenTaskCreated() {
-        // Arrange — input data
-        Long taskId = 1L;
-        Long projectId = 2L;
-        Long currentUserId = 3L;
+        Long projectId = 3L;
 
         TaskCreateRequestDTO taskCreateRequestDTO = new TaskCreateRequestDTO();
         taskCreateRequestDTO.setTitle("Task 1");
@@ -135,62 +101,47 @@ public class TaskServiceTest {
         taskCreateRequestDTO.setProjectId(projectId);
 
         User currentUser = new User();
-        currentUser.setId(currentUserId);
+        currentUser.setId(CURRENT_USER_ID);
         currentUser.setUsername("dmytronik");
 
         Project project = new Project();
         project.setId(projectId);
 
-        // Arrange — mock
-        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(currentUser));
-        when(taskAccessChecker.getProjectForTaskCreation(projectId, currentUserId)).thenReturn(project);
+        when(userRepository.findById(CURRENT_USER_ID)).thenReturn(Optional.of(currentUser));
+        when(taskAccessChecker.getProjectForTaskCreation(projectId, CURRENT_USER_ID)).thenReturn(project);
         when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> {
             Task savedTask = invocation.getArgument(0);
-            savedTask.setId(taskId);
+            savedTask.setId(TASK_ID);
             return savedTask;
         });
 
-        // Act
-        TaskResponseDTO taskResponseDTO = taskService.createTask(taskCreateRequestDTO, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.createTask(taskCreateRequestDTO, CURRENT_USER_ID);
 
-        // Assert
-        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
+        assertThat(taskResponseDTO.getId()).isEqualTo(TASK_ID);
         assertThat(taskResponseDTO.getTitle()).isEqualTo("Task 1");
         assertThat(taskResponseDTO.getDescription()).isEqualTo("Task 1 description");
         assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.TODO);
-        assertThat(taskResponseDTO.getReporter().getId()).isEqualTo(currentUserId);
+        assertThat(taskResponseDTO.getReporter().getId()).isEqualTo(CURRENT_USER_ID);
     }
 
     @Test
     void updateTask_shouldReturnDTO_whenTaskUpdated() {
-        // Arrange — input data
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
         TaskUpdateRequestDTO taskUpdateRequestDTO = new TaskUpdateRequestDTO();
         taskUpdateRequestDTO.setTitle("Updated title");
         taskUpdateRequestDTO.setDescription("Updated description");
         taskUpdateRequestDTO.setStatus(TaskStatus.IN_PROGRESS);
 
-        // reporter is necessary for creating response in convertToDTO
-        User reporter = new User();
-
-        Task task = new Task();
-        task.setId(taskId);
+        Task task = newTask();
         task.setTitle("Task 1");
         task.setDescription("Task 1");
         task.setStatus(TaskStatus.TODO);
-        task.setReporter(reporter);
 
-        // Arrange — mock
-        when(taskAccessChecker.getTaskWithEditAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithEditAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
         when(taskRepository.save(task)).thenReturn(task);
 
-        // Act
-        TaskResponseDTO taskResponseDTO = taskService.updateTask(taskId, taskUpdateRequestDTO, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.updateTask(TASK_ID, taskUpdateRequestDTO, CURRENT_USER_ID);
 
-        // Assert
-        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
+        assertThat(taskResponseDTO.getId()).isEqualTo(TASK_ID);
         assertThat(taskResponseDTO.getTitle()).isEqualTo("Updated title");
         assertThat(taskResponseDTO.getDescription()).isEqualTo("Updated description");
         assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.IN_PROGRESS);
@@ -198,84 +149,66 @@ public class TaskServiceTest {
 
     @Test
     void updateTask_shouldThrowForbidden_whenUserCannotEditTask() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        when(taskAccessChecker.getTaskWithEditAccess(taskId, currentUserId))
+        when(taskAccessChecker.getTaskWithEditAccess(TASK_ID, CURRENT_USER_ID))
                 .thenThrow(new ForbiddenOperationException("Edit access denied"));
 
-        assertThatThrownBy(() -> taskService.updateTask(taskId, new TaskUpdateRequestDTO(), currentUserId))
+        assertThatThrownBy(() -> taskService.updateTask(TASK_ID, new TaskUpdateRequestDTO(), CURRENT_USER_ID))
                 .isInstanceOf(ForbiddenOperationException.class);
     }
 
     @Test
     void updateTask_shouldThrowNotFound_whenTaskNotFoundOrNotVisible() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
+        when(taskAccessChecker.getTaskWithEditAccess(TASK_ID, CURRENT_USER_ID))
+                .thenThrow(new TaskNotFoundOrAccessException(TASK_ID));
 
-        when(taskAccessChecker.getTaskWithEditAccess(taskId, currentUserId))
-                .thenThrow(new TaskNotFoundOrAccessException(taskId));
-
-        assertThatThrownBy(() -> taskService.updateTask(taskId, new TaskUpdateRequestDTO(), currentUserId))
+        assertThatThrownBy(() -> taskService.updateTask(TASK_ID, new TaskUpdateRequestDTO(), CURRENT_USER_ID))
                 .isInstanceOf(TaskNotFoundOrAccessException.class);
     }
 
     @Test
     void updateTask_shouldThrowInvalidTaskStatus_whenRequestedStatusIsCancelled() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
         TaskUpdateRequestDTO taskUpdateRequestDTO = new TaskUpdateRequestDTO();
         taskUpdateRequestDTO.setStatus(TaskStatus.CANCELLED);
 
-        Task task = new Task();
+        Task task = newTask();
         task.setStatus(TaskStatus.TODO);
 
-        when(taskAccessChecker.getTaskWithEditAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithEditAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
 
-        assertThatThrownBy(() -> taskService.updateTask(taskId, taskUpdateRequestDTO, currentUserId))
+        assertThatThrownBy(() -> taskService.updateTask(TASK_ID, taskUpdateRequestDTO, CURRENT_USER_ID))
                 .isInstanceOf(InvalidTaskStatusException.class);
     }
 
     @Test
     void updateTask_shouldThrowTaskAlreadyCancelled_whenTaskAlreadyCancelled() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
         TaskUpdateRequestDTO taskUpdateRequestDTO = new TaskUpdateRequestDTO();
         taskUpdateRequestDTO.setStatus(TaskStatus.IN_PROGRESS);
 
-        Task task = new Task();
+        Task task = newTask();
         task.setStatus(TaskStatus.CANCELLED);
 
-        when(taskAccessChecker.getTaskWithEditAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithEditAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
 
-        assertThatThrownBy(() -> taskService.updateTask(taskId, taskUpdateRequestDTO, currentUserId))
+        assertThatThrownBy(() -> taskService.updateTask(TASK_ID, taskUpdateRequestDTO, CURRENT_USER_ID))
                 .isInstanceOf(TaskAlreadyCancelledException.class);
     }
 
     @Test
     void updateTask_shouldThrowInvalidTaskStatus_whenBothRequestedStatusIsCancelledAndTaskAlreadyCancelled() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
         TaskUpdateRequestDTO taskUpdateRequestDTO = new TaskUpdateRequestDTO();
         taskUpdateRequestDTO.setStatus(TaskStatus.CANCELLED);
 
-        Task task = new Task();
+        Task task = newTask();
         task.setStatus(TaskStatus.CANCELLED);
 
-        when(taskAccessChecker.getTaskWithEditAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithEditAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
 
-        assertThatThrownBy(() -> taskService.updateTask(taskId, taskUpdateRequestDTO, currentUserId))
+        assertThatThrownBy(() -> taskService.updateTask(TASK_ID, taskUpdateRequestDTO, CURRENT_USER_ID))
                 .isInstanceOf(InvalidTaskStatusException.class);
     }
 
     @Test
     void assignTask_shouldReturnDTO_whenTaskAssigned() {
-        // Arrange
-        Long taskId = 1L;
-        Long currentUserId = 2L;
         Long newAssigneeId = 3L;
 
         TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
@@ -286,62 +219,41 @@ public class TaskServiceTest {
         member.setId(newAssigneeId);
         project.getMembers().add(member);
 
-        // reporter is necessary for creating response in convertToDTO
-        User reporter = new User();
-
-        Task task = new Task();
-        task.setId(taskId);
+        Task task = newTask();
         task.setProject(project);
-        task.setReporter(reporter);
 
-        // Arrange - mock
-        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithAssignAccess(TASK_ID, CURRENT_USER_ID, newAssigneeId)).thenReturn(task);
         when(taskRepository.save(task)).thenReturn(task);
 
-        // Act
-        TaskResponseDTO taskResponseDTO = taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.assignTask(TASK_ID, taskAssigneeRequestDTO, CURRENT_USER_ID);
 
-        // Assert
         assertThat(taskResponseDTO.getAssignee().getId()).isEqualTo(newAssigneeId);
-        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
+        assertThat(taskResponseDTO.getId()).isEqualTo(TASK_ID);
     }
 
     @Test
     void assignTask_shouldReturnDTO_whenTaskUnassigned() {
-        // Arrange
-        Long taskId = 1L;
-        Long currentUserId = 2L;
         Long newAssigneeId = null;
 
         TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
         taskAssigneeRequestDTO.setAssigneeId(newAssigneeId);
 
-        // reporter is necessary for creating response in convertToDTO
-        User reporter = new User();
-
         User currentAssignee = new User();
 
-        Task task = new Task();
-        task.setId(taskId);
-        task.setReporter(reporter);
+        Task task = newTask();
         task.setAssignee(currentAssignee);
 
-        // Arrange - mock
-        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithAssignAccess(TASK_ID, CURRENT_USER_ID, newAssigneeId)).thenReturn(task);
         when(taskRepository.save(task)).thenReturn(task);
 
-        // Act
-        TaskResponseDTO taskResponseDTO = taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.assignTask(TASK_ID, taskAssigneeRequestDTO, CURRENT_USER_ID);
 
-        // Assert
         assertThat(taskResponseDTO.getAssignee()).isNull();
-        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
+        assertThat(taskResponseDTO.getId()).isEqualTo(TASK_ID);
     }
 
     @Test
     void assignTask_shouldThrowNotProjectMember_whenNewAssigneeNotMember() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
         Long newAssigneeId = 3L;
 
         TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
@@ -349,20 +261,17 @@ public class TaskServiceTest {
 
         Project project = new Project();
 
-        Task task = new Task();
-        task.setId(taskId);
+        Task task = newTask();
         task.setProject(project);
 
-        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithAssignAccess(TASK_ID, CURRENT_USER_ID, newAssigneeId)).thenReturn(task);
 
-        assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
+        assertThatThrownBy(() -> taskService.assignTask(TASK_ID, taskAssigneeRequestDTO, CURRENT_USER_ID))
                 .isInstanceOf(NotProjectMemberException.class);
     }
 
     @Test
     void assignTask_shouldThrowTaskAlreadyCancelled_whenTaskAlreadyCancelled() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
         Long newAssigneeId = 3L;
 
         TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
@@ -373,22 +282,18 @@ public class TaskServiceTest {
         member.setId(newAssigneeId);
         project.getMembers().add(member);
 
-        Task task = new Task();
-        task.setId(taskId);
+        Task task = newTask();
         task.setProject(project);
         task.setStatus(TaskStatus.CANCELLED);
 
-        // Arrange - mock
-        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithAssignAccess(TASK_ID, CURRENT_USER_ID, newAssigneeId)).thenReturn(task);
 
-        assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
+        assertThatThrownBy(() -> taskService.assignTask(TASK_ID, taskAssigneeRequestDTO, CURRENT_USER_ID))
                 .isInstanceOf(TaskAlreadyCancelledException.class);
     }
 
     @Test
     void assignTask_shouldThrowNotProjectMember_whenBothNewAssigneeNotMemberAndTaskAlreadyCancelled() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
         Long newAssigneeId = 3L;
 
         TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
@@ -396,127 +301,99 @@ public class TaskServiceTest {
 
         Project project = new Project();
 
-        Task task = new Task();
-        task.setId(taskId);
+        Task task = newTask();
         task.setProject(project);
         task.setStatus(TaskStatus.CANCELLED);
 
-        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithAssignAccess(TASK_ID, CURRENT_USER_ID, newAssigneeId)).thenReturn(task);
 
-        assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
+        assertThatThrownBy(() -> taskService.assignTask(TASK_ID, taskAssigneeRequestDTO, CURRENT_USER_ID))
                 .isInstanceOf(NotProjectMemberException.class);
     }
 
     @Test
     void assignTask_shouldThrowForbidden_whenUserCannotAssignTask() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
         Long newAssigneeId = 3L;
 
         TaskAssigneeRequestDTO taskAssigneeRequestDTO = new TaskAssigneeRequestDTO();
         taskAssigneeRequestDTO.setAssigneeId(newAssigneeId);
 
-        when(taskAccessChecker.getTaskWithAssignAccess(taskId, currentUserId, newAssigneeId))
+        when(taskAccessChecker.getTaskWithAssignAccess(TASK_ID, CURRENT_USER_ID, newAssigneeId))
                 .thenThrow(new ForbiddenOperationException("Assign access denied"));
 
-        assertThatThrownBy(() -> taskService.assignTask(taskId, taskAssigneeRequestDTO, currentUserId))
+        assertThatThrownBy(() -> taskService.assignTask(TASK_ID, taskAssigneeRequestDTO, CURRENT_USER_ID))
                 .isInstanceOf(ForbiddenOperationException.class);
     }
 
     @Test
     void cancelTask_shouldReturnDTO_whenTaskCancelled() {
-        // Arrange
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        // reporter is necessary for creating response in convertToDTO
-        User reporter = new User();
         User assignee = new User();
         assignee.setId(3L);
 
-        Task task = new Task();
-        task.setId(taskId);
+        Task task = newTask();
         task.setStatus(TaskStatus.TODO);
-        task.setReporter(reporter);
         task.setAssignee(assignee);
 
-        // Arrange mock
-        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithCancellationAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
         when(taskRepository.save(task)).thenReturn(task);
 
-        // Act
-        TaskResponseDTO taskResponseDTO = taskService.cancelTask(taskId, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.cancelTask(TASK_ID, CURRENT_USER_ID);
 
-        // Assert
         assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.CANCELLED);
-        assertThat(taskResponseDTO.getId()).isEqualTo(taskId);
+        assertThat(taskResponseDTO.getId()).isEqualTo(TASK_ID);
         assertThat(taskResponseDTO.getAssignee().getId()).isEqualTo(assignee.getId());
     }
 
     @Test
     void cancelTask_shouldThrowTaskAlreadyCancelled_whenTaskAlreadyCancelled() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        Task task = new Task();
+        Task task = newTask();
         task.setStatus(TaskStatus.CANCELLED);
 
-        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithCancellationAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
 
-        assertThatThrownBy(() -> taskService.cancelTask(taskId, currentUserId))
+        assertThatThrownBy(() -> taskService.cancelTask(TASK_ID, CURRENT_USER_ID))
                 .isInstanceOf(TaskAlreadyCancelledException.class);
     }
 
     @Test
     void cancelTask_shouldThrowIllegalTaskStatusTransition_whenTaskDone() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        Task task = new Task();
+        Task task = newTask();
         task.setStatus(TaskStatus.DONE);
 
-        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithCancellationAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
 
-        assertThatThrownBy(() -> taskService.cancelTask(taskId, currentUserId))
+        assertThatThrownBy(() -> taskService.cancelTask(TASK_ID, CURRENT_USER_ID))
                 .isInstanceOf(IllegalTaskStatusTransitionException.class);
     }
 
     @Test
     void cancelTask_shouldThrowForbidden_whenUserCannotCancelTask() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId))
+        when(taskAccessChecker.getTaskWithCancellationAccess(TASK_ID, CURRENT_USER_ID))
                 .thenThrow(new ForbiddenOperationException("Cancellation access denied"));
 
-        assertThatThrownBy(() -> taskService.cancelTask(taskId, currentUserId))
+        assertThatThrownBy(() -> taskService.cancelTask(TASK_ID, CURRENT_USER_ID))
                 .isInstanceOf(ForbiddenOperationException.class);
     }
 
     @Test
     void reopenTask_shouldKeepAssignee_whenAssigneeStillMember() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
         Long assigneeId = 3L;
 
         User assignee = new User();
         assignee.setId(assigneeId);
 
-        User reporter = new User();
-
         Project project = new Project();
         project.getMembers().add(assignee);
 
-        Task task = new Task();
+        Task task = newTask();
         task.setStatus(TaskStatus.CANCELLED);
         task.setAssignee(assignee);
-        task.setReporter(reporter);
         task.setProject(project);
 
-        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithCancellationAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
         when(taskRepository.save(task)).thenReturn(task);
 
-        TaskResponseDTO taskResponseDTO = taskService.reopenTask(taskId, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.reopenTask(TASK_ID, CURRENT_USER_ID);
 
         assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.TODO);
         assertThat(taskResponseDTO.getAssignee().getId()).isEqualTo(assigneeId);
@@ -524,27 +401,22 @@ public class TaskServiceTest {
 
     @Test
     void reopenTask_shouldUnassign_whenAssigneeNotMember() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
         Long assigneeId = 3L;
 
         User assignee = new User();
         assignee.setId(assigneeId);
 
-        User reporter = new User();
-
         Project project = new Project();
 
-        Task task = new Task();
+        Task task = newTask();
         task.setStatus(TaskStatus.CANCELLED);
         task.setAssignee(assignee);
-        task.setReporter(reporter);
         task.setProject(project);
 
-        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithCancellationAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
         when(taskRepository.save(task)).thenReturn(task);
 
-        TaskResponseDTO taskResponseDTO = taskService.reopenTask(taskId, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.reopenTask(TASK_ID, CURRENT_USER_ID);
 
         assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.TODO);
         assertThat(taskResponseDTO.getAssignee()).isNull();
@@ -552,17 +424,13 @@ public class TaskServiceTest {
 
     @Test
     void reopenTask_shouldKeepUnassigned_whenHasNoAssignee() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        Task task = new Task();
+        Task task = newTask();
         task.setStatus(TaskStatus.CANCELLED);
-        task.setReporter(new User());
 
-        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithCancellationAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
         when(taskRepository.save(task)).thenReturn(task);
 
-        TaskResponseDTO taskResponseDTO = taskService.reopenTask(taskId, currentUserId);
+        TaskResponseDTO taskResponseDTO = taskService.reopenTask(TASK_ID, CURRENT_USER_ID);
 
         assertThat(taskResponseDTO.getStatus()).isEqualTo(TaskStatus.TODO);
         assertThat(taskResponseDTO.getAssignee()).isNull();
@@ -570,53 +438,49 @@ public class TaskServiceTest {
 
     @Test
     void reopenTask_shouldThrowIllegalTaskStatusTransition_whenTaskNotCancelled() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        Task task = new Task();
+        Task task = newTask();
         task.setStatus(TaskStatus.TODO);
 
-        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithCancellationAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
 
-        assertThatThrownBy(() -> taskService.reopenTask(taskId, currentUserId))
+        assertThatThrownBy(() -> taskService.reopenTask(TASK_ID, CURRENT_USER_ID))
                 .isInstanceOf(IllegalTaskStatusTransitionException.class);
     }
 
     @Test
     void reopenTask_shouldThrowForbidden_whenUserCannotReopenTask() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        when(taskAccessChecker.getTaskWithCancellationAccess(taskId, currentUserId))
+        when(taskAccessChecker.getTaskWithCancellationAccess(TASK_ID, CURRENT_USER_ID))
                 .thenThrow(new ForbiddenOperationException("Reopening access denied"));
 
-        assertThatThrownBy(() -> taskService.reopenTask(taskId, currentUserId))
+        assertThatThrownBy(() -> taskService.reopenTask(TASK_ID, CURRENT_USER_ID))
                 .isInstanceOf(ForbiddenOperationException.class);
     }
 
     @Test
     void deleteTask_shouldDeleteTask_whenUserHasDeleteAccess() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-        Task task = new Task();
-        task.setId(taskId);
+        Task task = newTask();
 
-        when(taskAccessChecker.getTaskWithDeleteAccess(taskId, currentUserId)).thenReturn(task);
+        when(taskAccessChecker.getTaskWithDeleteAccess(TASK_ID, CURRENT_USER_ID)).thenReturn(task);
 
-        taskService.deleteTask(taskId, currentUserId);
+        taskService.deleteTask(TASK_ID, CURRENT_USER_ID);
 
         verify(taskRepository).delete(task);
     }
 
     @Test
     void deleteTask_shouldThrowForbidden_whenUserCannotDelete() {
-        Long taskId = 1L;
-        Long currentUserId = 2L;
-
-        when(taskAccessChecker.getTaskWithDeleteAccess(taskId, currentUserId))
+        when(taskAccessChecker.getTaskWithDeleteAccess(TASK_ID, CURRENT_USER_ID))
                 .thenThrow(new ForbiddenOperationException("Delete access denied"));
 
-        assertThatThrownBy(() -> taskService.deleteTask(taskId, currentUserId))
+        assertThatThrownBy(() -> taskService.deleteTask(TASK_ID, CURRENT_USER_ID))
                 .isInstanceOf(ForbiddenOperationException.class);
+    }
+
+    private Task newTask() {
+        Task task = new Task();
+        task.setId(TASK_ID);
+        // reporter is required by convertToDTO
+        task.setReporter(new User());
+        return task;
     }
 }
