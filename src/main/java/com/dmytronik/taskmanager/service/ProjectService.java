@@ -1,7 +1,8 @@
 package com.dmytronik.taskmanager.service;
 
-import com.dmytronik.taskmanager.dto.ProjectRequestDTO;
+import com.dmytronik.taskmanager.dto.ProjectCreateRequestDTO;
 import com.dmytronik.taskmanager.dto.ProjectResponseDTO;
+import com.dmytronik.taskmanager.dto.ProjectUpdateRequestDTO;
 import com.dmytronik.taskmanager.dto.UserSummaryDTO;
 import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
 import com.dmytronik.taskmanager.exception.MemberHasTasksException;
@@ -9,6 +10,7 @@ import com.dmytronik.taskmanager.exception.MemberNotFoundException;
 import com.dmytronik.taskmanager.exception.NotProjectMemberException;
 import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
+import com.dmytronik.taskmanager.model.ProjectStatus;
 import com.dmytronik.taskmanager.model.TaskStatus;
 import com.dmytronik.taskmanager.model.User;
 import com.dmytronik.taskmanager.repository.ProjectRepository;
@@ -31,8 +33,8 @@ public class ProjectService {
     private final ProjectAccessChecker projectAccessChecker;
 
     @Transactional
-    public ProjectResponseDTO createProject(ProjectRequestDTO projectRequestDTO, Long currentUserId) {
-        Project project = convertToEntity(projectRequestDTO);
+    public ProjectResponseDTO createProject(ProjectCreateRequestDTO projectCreateRequestDTO, Long currentUserId) {
+        Project project = convertToEntity(projectCreateRequestDTO);
         User owner = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new UserNotFoundException(currentUserId));
         project.setOwner(owner);
@@ -68,11 +70,11 @@ public class ProjectService {
     }
 
     @Transactional
-    public ProjectResponseDTO updateProject(Long id, ProjectRequestDTO projectRequestDTO, Long currentUserId) {
+    public ProjectResponseDTO updateProject(Long id, ProjectUpdateRequestDTO projectUpdateRequestDTO, Long currentUserId) {
         Project project = projectAccessChecker.getProjectWithEditAccess(id, currentUserId);
-        project.setTitle(projectRequestDTO.getTitle());
-        project.setDescription(projectRequestDTO.getDescription());
-        project.setStatus(projectRequestDTO.getStatus());
+        project.setTitle(projectUpdateRequestDTO.getTitle());
+        project.setDescription(projectUpdateRequestDTO.getDescription());
+        project.setStatus(projectUpdateRequestDTO.getStatus());
         return convertToDTO(projectRepository.save(project));
     }
 
@@ -124,11 +126,11 @@ public class ProjectService {
                 memberDTOs);
     }
 
-    private Project convertToEntity(ProjectRequestDTO projectRequestDTO) {
+    private Project convertToEntity(ProjectCreateRequestDTO projectCreateRequestDTO) {
         Project project = new Project();
-        project.setTitle(projectRequestDTO.getTitle());
-        project.setDescription(projectRequestDTO.getDescription());
-        project.setStatus(projectRequestDTO.getStatus());
+        project.setTitle(projectCreateRequestDTO.getTitle());
+        project.setDescription(projectCreateRequestDTO.getDescription());
+        project.setStatus(ProjectStatus.ACTIVE);
         return project;
     }
 
