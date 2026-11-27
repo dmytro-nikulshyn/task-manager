@@ -8,8 +8,10 @@ import com.dmytronik.taskmanager.exception.ForbiddenOperationException;
 import com.dmytronik.taskmanager.exception.IllegalTaskStatusTransitionException;
 import com.dmytronik.taskmanager.exception.InvalidTaskStatusException;
 import com.dmytronik.taskmanager.exception.NotProjectMemberException;
+import com.dmytronik.taskmanager.exception.ProjectNotFoundOrAccessException;
 import com.dmytronik.taskmanager.exception.TaskAlreadyCancelledException;
 import com.dmytronik.taskmanager.exception.TaskNotFoundOrAccessException;
+import com.dmytronik.taskmanager.exception.UserNotFoundException;
 import com.dmytronik.taskmanager.model.Project;
 import com.dmytronik.taskmanager.model.Task;
 import com.dmytronik.taskmanager.model.TaskStatus;
@@ -44,6 +46,8 @@ public class TaskServiceTest {
     private UserRepository userRepository;
     @Mock
     private TaskAccessChecker taskAccessChecker;
+    @Mock
+    private ProjectAccessChecker projectAccessChecker;
     @InjectMocks
     private TaskService taskService;
 
@@ -83,12 +87,38 @@ public class TaskServiceTest {
     }
 
     @Test
-    void getTaskById_shouldThrowException_whenTaskNotFoundOrAccessDenied() {
+    void getTaskById_shouldThrowTaskNotFoundOrAccess_whenTaskNotFoundOrNotVisible() {
         when(taskAccessChecker.getTaskWithViewAccess(TASK_ID, CURRENT_USER_ID))
                 .thenThrow(new TaskNotFoundOrAccessException(TASK_ID));
 
         assertThatThrownBy(() -> taskService.getTaskById(TASK_ID, CURRENT_USER_ID))
                 .isInstanceOf(TaskNotFoundOrAccessException.class);
+    }
+
+    @Test
+    void getTasksByProject_shouldReturnListOfDTOs_whenUserCanViewProject() {
+        Long projectId = 3L;
+
+        Task task = newTask();
+
+        when(projectAccessChecker.getProjectWithViewAccess(projectId, CURRENT_USER_ID)).thenReturn(new Project());
+        when(taskRepository.findByProjectIdOrderByCreatedAtDesc(projectId)).thenReturn(List.of(task));
+
+        List<TaskResponseDTO> taskResponseDTOs = taskService.getTasksByProject(projectId, CURRENT_USER_ID);
+
+        assertThat(taskResponseDTOs).hasSize(1);
+        assertThat(taskResponseDTOs.get(0).getId()).isEqualTo(TASK_ID);
+    }
+
+    @Test
+    void getTasksByProject_shouldThrowProjectNotFoundOrAccess_whenProjectNotFoundOrNotVisible() {
+        Long projectId = 3L;
+
+        when(projectAccessChecker.getProjectWithViewAccess(projectId, CURRENT_USER_ID))
+                .thenThrow(new ProjectNotFoundOrAccessException(projectId));
+
+        assertThatThrownBy(() -> taskService.getTasksByProject(projectId, CURRENT_USER_ID))
+                .isInstanceOf(ProjectNotFoundOrAccessException.class);
     }
 
     @Test
@@ -125,6 +155,16 @@ public class TaskServiceTest {
     }
 
     @Test
+    void createTask_shouldThrowUserNotFound_whenUserNotFound() {
+        TaskCreateRequestDTO taskCreateRequestDTO = new TaskCreateRequestDTO();
+
+        when(userRepository.findById(CURRENT_USER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> taskService.createTask(taskCreateRequestDTO, CURRENT_USER_ID))
+                .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
     void updateTask_shouldReturnDTO_whenTaskUpdated() {
         TaskUpdateRequestDTO taskUpdateRequestDTO = new TaskUpdateRequestDTO();
         taskUpdateRequestDTO.setTitle("Updated title");
@@ -157,7 +197,7 @@ public class TaskServiceTest {
     }
 
     @Test
-    void updateTask_shouldThrowNotFound_whenTaskNotFoundOrNotVisible() {
+    void updateTask_shouldThrowTaskNotFoundOrAccess_whenTaskNotFoundOrNotVisible() {
         when(taskAccessChecker.getTaskWithEditAccess(TASK_ID, CURRENT_USER_ID))
                 .thenThrow(new TaskNotFoundOrAccessException(TASK_ID));
 
